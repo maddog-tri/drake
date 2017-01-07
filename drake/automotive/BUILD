@@ -192,6 +192,7 @@ cc_binary(
     ],
     deps = [
         ":automotive_simulator",
+        "//drake/automotive/maliput/monolane:loader",
         "//drake/common:text_logging_gflags",
     ],
 )
