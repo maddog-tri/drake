@@ -91,7 +91,10 @@ cc_library(
 
 cc_library(
     name = "endless_road_oracle",
-    srcs = ["endless_road_oracle.cc"],
+    srcs = [
+        "endless_road_oracle.cc",
+        "endless_road_oracle-internal.h",
+    ],
     hdrs = ["endless_road_oracle.h"],
     linkstatic = 1,
     deps = [
