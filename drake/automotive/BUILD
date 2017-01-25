@@ -296,6 +296,15 @@ cc_googletest(
 )
 
 cc_googletest(
+    name = "endless_road_oracle_test",
+    deps = [
+        "//drake/automotive:endless_road_oracle",
+        "//drake/automotive/maliput/monolane:builder",
+        "//drake/automotive/maliput/utility:utility",
+    ],
+)
+
+cc_googletest(
     name = "endless_road_car_to_euler_floating_joint_test",
     deps = [
         "//drake/automotive:endless_road_car",
