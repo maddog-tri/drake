@@ -18,6 +18,8 @@
 #include "drake/automotive/maliput/api/segment.h"
 #include "drake/common/drake_assert.h"
 
+#include <iostream>
+
 namespace drake {
 namespace maliput {
 namespace utility {
@@ -421,6 +423,13 @@ void StripeLaneBounds(GeoMesh* mesh, const api::Lane* lane,
 void DrawLaneArrow(GeoMesh* mesh, const api::Lane* lane, double grid_unit,
                    double s_offset, double s_size, double h_offset) {
   DRAKE_DEMAND(s_offset >= 0.);
+
+  if (!((s_offset + s_size) <= lane->length())) {
+    fmt::print(std::cerr,
+               "ACK!  s_offset {}  s_size {}  + {}  length {}\n",
+               s_offset, s_size, (s_offset + s_size), lane->length());
+  }
+
   DRAKE_DEMAND((s_offset + s_size) <= lane->length());
   const double kRelativeWidth = 0.8;
 
@@ -528,12 +537,15 @@ void DrawLaneArrow(GeoMesh* mesh, const api::Lane* lane, double grid_unit,
 // @param h_offset  h value of each vertex (height above road surface)
 void MarkLaneEnds(GeoMesh* mesh, const api::Lane* lane, double grid_unit,
                   double h_offset) {
+  const double max_length = 0.3 * lane->length();
   // To avoid crossing boundaries (and tripping assertions) due to
   // numeric precision issues, we will nudge the arrows inward from
   // the ends of the lanes by the RoadGeometry's linear_tolerance().
-  const double nudge =
-      lane->segment()->junction()->road_geometry()->linear_tolerance();
-  const double max_length = 0.3 * lane->length();
+  // (However, we have to deal with the very real possibility that an
+  // input Lane's length is close to linear_tolerance().)
+  const double nudge = std::min(
+      lane->segment()->junction()->road_geometry()->linear_tolerance(),
+      0.1 * (lane->length() - max_length));
   // Arrows are sized relative to their respective ends.
   const api::RBounds start_rb = lane->lane_bounds(0.);
   const double start_s_size = std::min(max_length,
@@ -542,6 +554,19 @@ void MarkLaneEnds(GeoMesh* mesh, const api::Lane* lane, double grid_unit,
   const api::RBounds finish_rb = lane->lane_bounds(lane->length());
   const double finish_s_size = std::min(max_length,
                                         (finish_rb.r_max - finish_rb.r_min));
+
+  if (!(((0. + nudge) + start_s_size) <= lane->length())) {
+    fmt::print(std::cerr,
+               "ICK0!  length {}  start_s_size {}  nudge {}\n",
+               lane->length(), start_s_size, nudge);
+  }
+
+  if (!(((lane->length() - finish_s_size - nudge) + finish_s_size) <=
+        lane->length())) {
+    fmt::print(std::cerr,
+               "ICK1!  length {}  finish_s_size {}  nudge {}\n",
+               lane->length(), finish_s_size, nudge);
+  }
 
   DrawLaneArrow(mesh, lane, grid_unit,
                 0. + nudge, start_s_size, h_offset);
