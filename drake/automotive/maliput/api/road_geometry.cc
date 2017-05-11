@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "fmt/format.h"
+
 #include "drake/automotive/maliput/api/branch_point.h"
 #include "drake/automotive/maliput/api/junction.h"
 #include "drake/automotive/maliput/api/lane.h"
@@ -175,6 +177,31 @@ std::vector<std::string> RoadGeometry::CheckInvariants() const {
         }
       }
     }
+  }
+
+  // Verify consistency of BranchPoint<->Lane connectivity.
+  for (int bpi = 0; bpi < num_branch_points(); ++bpi) {
+    const BranchPoint* bp = branch_point(bpi);
+    const auto test_bp_cross_references = [&](const LaneEndSet* ends,
+                                              const std::string& label) {
+      for (int ei = 0; ei < ends->size(); ++ei) {
+        const LaneEnd end = ends->get(ei);
+        const BranchPoint* end_bp = end.lane->GetBranchPoint(end.end);
+        if (end_bp != bp) {
+          failures.push_back(fmt::format(
+              "BranchPoint '{}' claims {}-side contains Lane '{}' {}, "
+              "but that lane-end claims to belong to BranchPoint '{}'.",
+              bp->id().id, label, end.lane->id().id, end.end,
+              end_bp->id().id));
+        }
+      }
+    };
+    test_bp_cross_references(bp->GetASide(), "A");
+    test_bp_cross_references(bp->GetBSide(), "B");
+
+    // TODO(maddog@tri.global)  Test Lane::GetConfluentBranches().
+    // TODO(maddog@tri.global)  Test Lane::GetOngoingBranches().
+    // TODO(maddog@tri.global)  Test Lane::GetDefaultBranch().
   }
 
   // Verify C1 continuity at branch-points (within declared tolerances).

@@ -26,6 +26,7 @@ drake_cc_library(
     deps = [
         "//drake/common",
         "//drake/math:geometric_transform",
+        "@fmt//:fmt",
     ],
 )
 
