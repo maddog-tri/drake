@@ -12,7 +12,7 @@
 
 #+TITLE: maliput: Modeling Road Networks for Simulation
 #+AUTHOR: Matt Marjanović (maddog@tri.global)
-#+DATE: March 21, 2017
+#+DATE: September 20, 2017
 
 This document describes =maliput=, a model of road networks for use in
 agent and traffic simulations.  At the core of =maliput= is a
@@ -453,7 +453,187 @@ joins those two end-to-end (resulting in three independent =Junctions=).
     * accessor for the set of ongoing =Lanes= for a given =Lane=
     * accessor for the default branch (ongoing =Lane=) for a given =Lane=
     * accessor for parent =RoadGeometry=
-** =maliput::monolane= Implementation
+** =maliput::monolane= and =maliput::multilane= Implementations
+
+=monolane= and its successor =multilane= are implementations of the
+=maliput= API which synthesize a road network from planar geometric
+primitives.  =monolane= only admits a single =Lane= per =Segment=
+whereas =multilane=, as its name suggests, admits multiple =Lanes=.
+In both, the basic geometry of a =Segment= is derived from the
+composition of a planar ($xy$) curve, an elevation function, and a
+superelevation function.  A =Lane= of a =Segment= is defined via a
+constant lateral offset from the $r=0$ reference curve of the
+=Segment=.
+
+Three coordinate frames are involved in the following discussion:
+ * $(x,y,z)$ is a position in the =World=-frame.
+ * $(s,r,h)_\text{LANE}$ is a position in a =Lane=-frame, as discussed
+   in Section [[=World= Frame versus =Lane= Frame]].
+ * $(p,r,h)_\text{SEG}$ is a position in a curvilinear reference frame of
+   the =Segment=, analogous to $(s,r,h)_\text{LANE}$ for a =Lane=.
+   $p \in [0, 1]$ is the longitudinal parameter spanning the =Segment=.
+   $r$ is a lateral offset from the =Segment='s reference curve,
+   along the =Segment= surface.  $h$ is height above the surface.
+
+*** =Segment= Geometry
+The geometry of a =Segment= is completely derived from its world transform
+\[
+W: (p,r,h)_\text{SEG} \to (x,y,z)
+\]
+which is itself composed of three fundamental functions.
+
+The first fundamental function defines a 2-d curve in the $xy$ -plane:
+\[
+G_{xy}: p_\text{SEG} \to (x,y).
+\]
+This curve establishes the basic geometric primitive of the =Segment=
+(e.g., "linear segment" or "constant-radius arc").
+We define $l$ as a path-length along this curve, in the range
+$[0, l_\text{max}]$, where $l_\text{max}$ is the total path-length
+of the curve.  $G_{xy}$ is parameterized such that
+\[
+p_\text{SEG} = \frac{l}{l_\text{max}};
+\]
+in other words, $p_\text{SEG}$ is linear in path-length along the planar
+reference curve.
+
+The second fundamental function specifies elevation above the \(xy\)-plane:
+\[
+G_z: p_\text{SEG} \to \frac{1}{l_\text{max}}z.
+\]
+Taking $G_{xy}$ and $G_z$ together,
+# \[
+# \left(\begin{array}{c} G_{xy}\\ l_\text{max}G_z \end{array}\right):
+#  p_\text{SEG} \to
+# \left(\begin{array}{c}x\\y\\z\end{array}\right)
+# \]
+\[
+\left(\begin{array}{c}x\\y\\z\end{array}\right) =
+W(p)_\text{SEG} =
+\left(\begin{array}{c} G_{xy}\\ l_\text{max}G_z \end{array}\right)
+\]
+defines a 3-d /reference curve/ $W(p)_\text{SEG}$
+for the =Segment= and establishes the
+basis vector $\hat{p}_\text{SEG}$ as tangent to that curve.
+$G_z$ is constructed with the scale factor of $1/l_\text{max}$ specifically
+so that:
+\begin{eqnarray*}
+            z & = & l_\text{max} G_z(p_\text{SEG})\\
+              & = & l_\text{max} G_z\left(\frac{l}{l_\text{max}}\right)\\
+\frac{dz}{dl} & = &\frac{d}{dp_\text{SEG}}G_z(p_\text{SEG})
+\end{eqnarray*}
+This allows us to recover the slope $\frac{dz}{dl}$ of the segment
+surface along its reference curve directly from the first derivative of $G_z$.
+
+The third fundamental function specifies the superelevation of the =Segment=
+surface:
+\[
+\Theta: p_\text{SEG} \to \theta
+\]
+Superelevation is the "twist" in a road, given as the angle of rotation of
+the $(\hat{r},\hat{h})_\text{SEG}$ plane around the $\hat{p}_\text{SEG}$
+basis vector.
+
+With the three fundamental functions in hand, we can express the orientation
+of the $(\hat{p},\hat{r},\hat{h})_\text{SEG}$ frame along the reference curve,
+with respect to the =World=-frame, as a roll/pitch/yaw rotation:
+\begin{align*}
+\mathbf{R}(p_\text{SEG}) &=
+ \mathbf{R}_{\gamma(p_\text{SEG})}
+ \mathbf{R}_{\beta(p_\text{SEG})} \mathbf{R}_{\alpha(p_\text{SEG})}\\
+%
+\mathbf{R}_{\gamma(p_\text{SEG})} &=
+\left(\begin{array}{rrr}
+\cos\gamma & -\sin\gamma & 0 \\
+\sin\gamma &  \cos\gamma & 0 \\
+         0 &           0 & 1
+\end{array}\right) & \text{(yaw)}\\
+%
+\mathbf{R}_{\beta(p_\text{SEG})}  &=
+\left(\begin{array}{rrr}
+ \cos\beta & 0 & \sin\beta \\
+         0 & 1 &         0 \\
+-\sin\beta & 0 & \cos\beta
+\end{array}\right) & \text{(pitch)} \\
+%
+\mathbf{R}_{\alpha(p_\text{SEG})} &=
+\left(\begin{array}{rrr}
+1 &          0 &           0 \\
+0 & \cos\alpha & -\sin\alpha \\
+0 & \sin\alpha &  \cos\alpha
+\end{array}\right) & \text{(roll)}
+\end{align*}
+where
+\begin{align*}
+\gamma(p_\text{SEG}) &=
+  \mathrm{atan2}\negthickspace\left(\frac{dG_y}{dp_\text{SEG}},
+                      \frac{dG_x}{dp_\text{SEG}}\right) & \text{(yaw)}\\
+\beta(p_\text{SEG})  &=
+  \mathrm{atan}\negthickspace\left(\frac{dG_z}
+                                        {dp_\text{SEG}}\right)
+& \text{(pitch)} \\
+\alpha(p_\text{SEG}) &= \Theta(p_\text{SEG}) & \text{(roll)}
+\end{align*}
+
+With $\mathbf{R}$, we can define the =Segment= /surface/ $W(p,r)_\text{SEG}$:
+\begin{align*}
+(x,y,z) = W(p,r)_\text{SEG} = \left(
+\begin{array}{c}
+   G_{xy}(p_\text{SEG})\\
+   G_z(p_\text{SEG})
+\end{array} \right) +
+\mathbf{R}(p_\text{SEG})\negthickspace
+\begin{pmatrix}
+0\\ r_\text{SEG} \\ 0 \end{pmatrix}
+\end{align*}
+
+**** Volumetric
+With $\mathbf{R}$, we can define the world transform $W$:
+
+
+=monolane= and =multilane= implement (at least) two forms of $G_{xy}$:
+"linear segment" and "constant radius arc".  Elevation $G_z$ and
+superelevation $\Theta$ are implemented as cubic polynomials (the minimum
+degree which allows for $G^1$ continuity at segment boundaries).
+
+*** =Lane= Geometry
+
+A =Lane= derives its underlying geometry from its =Segment=.  The centerline
+of a =Lane= is simply a parallel curve with a constant lateral offset $r_0$
+from the 3-d reference curve of the =Segment=.  We can express this
+relationship as a
+transform between $(s,r,h)_\text{LANE}$ and $(p,r,h)_\text{SEG}$:
+\begin{align*}
+\begin{pmatrix} p_\text{SEG}\\
+                r_\text{SEG}\\
+                h_\text{SEG} \end{pmatrix}
+&= \begin{pmatrix}    P(s_\text{LANE})\\
+                   r_\text{LANE} + r_0\\
+                         h_\text{LANE} \end{pmatrix}
+\end{align*}
+The tricky part here is $P:s_\text{LANE} \to p_\text{SEG}$, the relationship
+between $s_\text{LANE}$ and $p_\text{SEG}$, which boils down to a
+path-length integral over $W$.  If we let
+$W' &= \frac{d}{dp_\text{SEG}}W$ for brevity, then:
+\begin{align*}
+s_\text{LANE}(p_\text{SEG0}) &=
+ \int_{0}^{p_\text{SEG0}} \left\lVert W'(p_\text{SEG}, r_0, 0)
+ \right\rVert dp_\text{SEG}
+\end{align*}
+because $s_\text{LANE}$ is the path-length of a curve on the =Segment= surface
+(i.e., $h=0$) with a constant lateral offset $r_0$.  Unfortunately, there is
+generally not a closed-form solution for this function in the face of
+non-constant elevation or superelevation or non-zero $r_0$.  And,
+$P(s_\text{LANE})$, its inverse, is even more dire.[fn::Which makes us wonder,
+perhaps the =Lane=-frame of =maliput= would be better off using an arbitrary
+longitudinal parameter $p_\text{LANE}$ which could be converted to
+$s_\text{LANE}$ on demand, instead of the other way around.]
+
+ * /TODO:/ Derivation of orientation at arbitrary $(s,r,h)_\text{LANE}$ point.
+ * /TODO:/ Derivation of motion-derivatives.
+
+
+*** Other Bits
  * /TODO:/  Reference to =maliput::api= doxygen.
  * /TODO:/  Basics of geometric primitives
  * /TODO:/  Basics of Builder
@@ -468,3 +648,4 @@ joins those two end-to-end (resulting in three independent =Junctions=).
 #+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
 #+LATEX_HEADER: \setlength{\parindent}{0pt}
 #+LATEX_HEADER: \setlength{\parskip}{0.5em}
+#+LATEX_HEADER: \usepackage{amsmath}
