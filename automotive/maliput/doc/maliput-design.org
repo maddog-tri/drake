@@ -396,21 +396,122 @@ to the same =Junction=.  It would be better split that single =Segment=
 into three:  one crossing each intersection, and one in between that
 joins those two end-to-end (resulting in three independent =Junctions=).
 
-* Annotations Database /(TODO)/
-  * (Rules may have time-of-day component.)
-** Lane-wide rules
-   * allowed travel direction
-     * single-direction (increasing $s$, decreasing $s$)
-     * bi-directional turning lane
-     * (time-of-day restrictions)
-   * use restrictions
-     * parking
-     * high-occupancy vehicles (HOV)
-     * pedestrian
-     * emergency vehicle
-   * speed limits
-   * passing rules
-** Physical features (features with spatial location and extent)
+* Rules and Features Databases /(TODO)/
+** =RoadRuleset= /(TODO/Proposed)/
+=RoadRuleset= provides an API for querying "rules of the road", the
+non-physical features that indicate how a road should be used.
+=RoadRuleset= is loosely coupled to =RoadGeometry= via entity ID's
+(=RoadGeometryId=, =LaneId=, etc).
+
+=RoadRuleset= provides a query-based interface: one asks for rule
+elements which affect a certain part of the road network during a
+certain time interval.  The current Lane-based query takes the form:
+
+#+BEGIN_QUOTE
+Return all rule elements affecting a specified =LaneId= which are
+effective during the time interval =[t0, t1)= and within the
+longitudinal range =[s0, s1]=, potentially limited to specified rule
+types.
+#+END_QUOTE
+
+Filtering by =SegmentId= or =JunctionId= would be useful as well
+(e.g., "Tell me speed limits of all adjacent lanes in my current
+segment.").
+
+The return value of a query is a list of =RuleElement=.  Every element
+has the common fields:
+  * =LaneId=
+  * time interval =[t0, t1)=
+
+The rule element subtypes currently considered are:
+  * direction/usage
+  * stop lines
+  * speed limits
+  * passing restrictions
+  * ongoing route ("turning") restrictions
+  * vehicle restrictions
+
+*** Direction/Usage
+  * longitudinal extent =[s0, s1]=
+  * rule/designation --- 1 of:
+    * unspecified/bidirectional
+    * +s only
+    * -s only
+    * bidirectional turning lane
+    * restricted/no-traffic
+  * /Should "no applicable record found" equate to "unspecified"?/
+  * /More possibilities:  parking, pedestrian, bike-lane,.../
+
+
+*** Stop Line
+  * longitudinal location =s=
+    * /(Maybe should be an extent =[s0, s1]=.  E.g., consider a crosswalk as
+      one stop-line or two?)/
+  * signal type --- 1 of:
+    * yield sign
+    * stop sign
+      * 1-way
+      * N-way (with reference to adjacent signs?)
+      * /(Or, is N-way to be determined by examining junction geometry?)/
+    * stop-light
+      * unique-id
+      * /Should static rules be implemented via =[t0, t1)= intervals?/
+        /Or should all stop-lights' state be via Id reference to a
+        controller object living somewhere else?/
+    * crosswalk?
+  * applicable direction
+    * "facing -s"
+    * "facing +s"
+    * "both directions"
+
+*** Speed Limits
+   * longitudinal extent =[s0, s1]=
+   * limit value (speed)
+   * limit type:
+     * strict
+     * advisory
+   * applicable vehicle:
+     * any
+     * trucks
+     * ?
+
+*** Passing Restrictions
+  * longitudinal extent =[s0, s1]=
+  * direction
+    * to-left
+    * to-right
+  * rule:
+    * lane change allowed ("white dash")
+    * avoid lane change ("white solid")
+    * pass with care ("yellow dash")
+    * no passing ("yellow solid")
+    * exit ("short white dash")
+
+*** Ongoing Route ("Turning") Restrictions
+  * which end (kStart, kFinish)
+  * ongoing LaneEnd (LaneId, WhichEnd)
+  * restricted vehicle type
+    * (not) any
+    * (not) bus
+    * (not) truck
+    * ...
+  * /(Or, maybe this concept is better represented by vehicle restrictions
+    on the ongoing lane instead.)/
+
+*** Vehicle Restrictions
+  * longitudinal extent =[s0, s1]=
+  * vehicle type
+    * high-occupancy vehicles (HOV) only
+    * no trucks
+    * bus only
+    * emergency vehicles only
+    * etc
+
+
+** Furniture and Physical Features /(TODO)/
+Database of physical features with spatial location and extent.  In many
+cases these are related to rules in the =RoadRuleset= (e.g., signs and
+stripes are indicators for rules of the road).
    * linear features
      * striping
    * areal features
@@ -421,6 +522,8 @@ joins those two end-to-end (resulting in three independent =Junctions=).
      * stop lights, stop signs
      * turn restrictions
    * other (volumetric) furniture
+     * benches
+     * mailboxes
      * traffic cones
      * refrigerator that fell off a truck
    * potholes
@@ -438,6 +541,10 @@ joins those two end-to-end (resulting in three independent =Junctions=).
 *** =RoadGeometry=
     * accessors for component =Junctions=
     * accessors for component =BranchPoints=
+    * accessors for tolerances
+      * =linear_tolerance=
+      * =angular_tolerance=
+      * =spatial_frequency_limit=
 *** =Junction=
     * accessors for parent =RoadGeometry=, component =Junctions=
 *** =Segment=
