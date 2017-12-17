@@ -502,18 +502,12 @@ The second fundamental function specifies elevation above the \(xy\)-plane:
 G_z: p_\text{SEG} \to \frac{1}{l_\text{max}}z.
 \]
 Taking $G_{xy}$ and $G_z$ together,
-# \[
-# \left(\begin{array}{c} G_{xy}\\ l_\text{max}G_z \end{array}\right):
-#  p_\text{SEG} \to
-# \left(\begin{array}{c}x\\y\\z\end{array}\right)
-# \]
 \[
-\left(\begin{array}{c}x\\y\\z\end{array}\right) =
-W(p)_\text{SEG} =
-\left(\begin{array}{c} G_{xy}\\ l_\text{max}G_z \end{array}\right)
+\left(\begin{array}{c} G_{xy}\\ l_\text{max}G_z \end{array}\right):
+ p_\text{SEG} \to
+\left(\begin{array}{c}x\\y\\z\end{array}\right)
 \]
-defines a 3-d /reference curve/ $W(p)_\text{SEG}$
-for the =Segment= and establishes the
+defines a 3-d /reference curve/ for the =Segment= and establishes the
 basis vector $\hat{p}_\text{SEG}$ as tangent to that curve.
 $G_z$ is constructed with the scale factor of $1/l_\text{max}$ specifically
 so that:
@@ -535,8 +529,8 @@ the $(\hat{r},\hat{h})_\text{SEG}$ plane around the $\hat{p}_\text{SEG}$
 basis vector.
 
 With the three fundamental functions in hand, we can express the orientation
-of the $(\hat{p},\hat{r},\hat{h})_\text{SEG}$ frame along the reference curve,
-with respect to the =World=-frame, as a roll/pitch/yaw rotation:
+of the $(\hat{p},\hat{r},\hat{h})_\text{SEG}$ frame, with respect to the
+=World=-frame, as a roll/pitch/yaw rotation:
 \begin{align*}
 \mathbf{R}(p_\text{SEG}) &=
  \mathbf{R}_{\gamma(p_\text{SEG})}
@@ -575,21 +569,17 @@ where
 \alpha(p_\text{SEG}) &= \Theta(p_\text{SEG}) & \text{(roll)}
 \end{align*}
 
-With $\mathbf{R}$, we can define the =Segment= /surface/ $W(p,r)_\text{SEG}$:
+Once we have $\mathbf{R}$, we can define the complete world transform $W$:
 \begin{align*}
-(x,y,z) = W(p,r)_\text{SEG} = \left(
+(x,y,z) = W(p,r,h)_\text{SEG} = \left(
 \begin{array}{c}
    G_{xy}(p_\text{SEG})\\
    G_z(p_\text{SEG})
 \end{array} \right) +
 \mathbf{R}(p_\text{SEG})\negthickspace
 \begin{pmatrix}
-0\\ r_\text{SEG} \\ 0 \end{pmatrix}
+0\\ r_\text{SEG} \\ h_\text{SEG} \end{pmatrix}
 \end{align*}
-
-**** Volumetric
-With $\mathbf{R}$, we can define the world transform $W$:
-
 
 =monolane= and =multilane= implement (at least) two forms of $G_{xy}$:
 "linear segment" and "constant radius arc".  Elevation $G_z$ and
@@ -649,3 +639,62 @@ $s_\text{LANE}$ on demand, instead of the other way around.]
 #+LATEX_HEADER: \setlength{\parindent}{0pt}
 #+LATEX_HEADER: \setlength{\parskip}{0.5em}
 #+LATEX_HEADER: \usepackage{amsmath}
+
+
+* SCALE                                                            :noexport:
+
+In just looking at the World->Lane->World round-trip, s could actually
+be anything as long as p->s is invertible.  However, we also want s to
+be a physically correct path-length.  We need to establish the
+precision requirement for s by itself.  Here's what I am thinking....
+
+Let’s let e be the linear_tolerance of the road network, and let’s
+interpret that to mean that any path in space (e.g., an r=0 centerline
+for a lane) is effectively equivalent/indistinguishable from another
+path if both are everywhere within e of each other.  What is the
+possible difference in path-length between two such paths?  That would
+be the acceptable precision in path-length. It is clear that this
+precision is relative to the length of the path --- as a path grows
+longer, the admissible absolute error increases as well.  A ~200m long
+path should admit twice the error of a ~100m long path.
+
+There is an additional characteristic of the road network that is missing
+and which I propose adding:  the scale length.  The road network
+needs to have an upper limit to the spatial frequency of the curves and
+surfaces captured in the model (e.g., the Nyquist limit), which indicates
+the maximum level of detail captured.  Let L be the scale length, which
+is the inverse of the maximum spatial frequency allowed in the model.
+Thus, L is the minimum period of variation expressed in the model, and
+relates to the smoothness of the model.  For example, if one wants to
+capture every pebble on a road surface, then L needs to be on the order
+of 1mm, and consequently path length s will measure the journey of an
+ant crawling up and over every pebble.
+
+Back to the path-length precision, we only want to equate paths within e
+of each other if they share the same scale length L.  Otherwise, the
+path-length could be made arbitrarily long by making a path arbitrarily
+wiggly, even if it remains within e of another path.
+
+With that in mind, the tolerance in path length basically scales as e/L.
+(There is some small constant involved, but e/L should work fine as a
+bound for us.)  You can see this relationship if you consider a
+straight path of length L, one period long, and then consider another
+path, whose deviation from the first is a sine function with period L
+and amplitude e.  The difference in path length is bounded by 4e, and
+the relative error is thus bounded by 4e/L.
+
+So, we can bound the relative error in p->s by e/L --- that is, a path
+length estimate is good enough if error(s)/s < e/L.  For the time-being,
+L can just be expressed by a hard-coded constant in multilane, and
+L = 1m is probably a reasonable value.  (In reality we will need to
+ensure that L reflects the actual behavior of W(s,r,h).)
+
+From the drake IntegratorBase documentation, it seems like the
+set_target_accuracy() method does in fact set the bound on the
+relative error of the result, so it simply setting it to e/L should
+accomplish our goals for p->s, but we should verify that it behaves
+that way.
+
+
+How about the inverse, s->p?  I think the same relative error holds for
+the output p:  e/L.
