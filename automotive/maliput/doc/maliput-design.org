@@ -425,28 +425,62 @@ has the common fields:
 
 The rule element subtypes currently considered are:
   * direction/usage
-  * stop lines
+  * priority/right-of-way
   * speed limits
-  * passing restrictions
+  * lane-change/passing restrictions
   * ongoing route ("turning") restrictions
   * vehicle restrictions
 
-*** Direction/Usage
-  * longitudinal extent =[s0, s1]=
-  * rule/designation --- 1 of:
-    * unspecified/bidirectional
-    * +s only
-    * -s only
-    * bidirectional turning lane
-    * restricted/no-traffic
-  * /Should "no applicable record found" equate to "unspecified"?/
-  * /More possibilities:  parking, pedestrian, bike-lane,.../
+*** =UsageBehaviorRule= --- Direction/Usage
+  * applicable =LaneFragment= {LaneId, s0, s1}
+  * designation, 1 of:
+    * bidirectional
+    * unidirectional, s increasing
+    * unidirectional, s decreasing
+    * bidirectional, turning-only
+    * no-traffic (/e.g., median strip/)
+    * parking
 
+  * +rule/designation --- 1 of:+
+    * +unspecified/bidirectional+
+    * ++s only+
+    * +-s only+
+    * +bidirectional turning lane+
+    * +restricted/no-traffic+
+  * +longitudinal extent =[s0, s1]=+
+  * +/Should "no applicable record found" equate to "unspecified"?/+
+  * /More possibilities:  parking, +pedestrian, bike-lane+,.../
+    * /pedestrian, bike, etc... should be vehicle-type restrictions,
+      not behavior expectations./
 
-*** Stop Line
-  * longitudinal location =s=
-    * /(Maybe should be an extent =[s0, s1]=.  E.g., consider a crosswalk as
-      one stop-line or two?)/
+*** =RightOfWayRule= --- Stopping and Yielding
+  * applicable controlled zone
+    * =LaneRoute= (contiguous sequence of =LaneFragment=)
+    * /This is directional:  entry-point or stop-line would be at the
+      beginning of first fragment./
+  * +longitudinal location =s=+
+    * +/(Maybe should be an extent =[s0, s1]=.  E.g., consider a crosswalk as
+      one stop-line or two?)/+
+  * rule
+    * static
+      * =StaticRightOfWayRule= <--- NEED A GOOD NAME
+        * complete-stop-then-go
+        * yield
+        * proceed-with-caution
+    * dynamic
+      * =DynamicRightOfWayRuleId=
+        * uncontrolled
+        * go
+        * prepare-to-stop/stop-unless-unsafe
+        * stop
+        * prepare-to-go
+        * proceed-with-caution
+        * stop-then-go
+        *
+  * controlled yield-to regions
+    * =optional<sequence of LaneFragment>= ???
+  * uncontrolled yield-to regions
+    * =optional<sequence of LaneFragment>= ???
   * signal type --- 1 of:
     * yield sign
     * stop sign
@@ -458,14 +492,19 @@ The rule element subtypes currently considered are:
       * /Should static rules be implemented via =[t0, t1)= intervals?/
         /Or should all stop-lights' state be via Id reference to a
         controller object living somewhere else?/
-    * crosswalk?
-  * applicable direction
-    * "facing -s"
-    * "facing +s"
-    * "both directions"
+    * +crosswalk?+
+  * /Can yield-to regions ever change depending on dynamic rule state?/
+  * /What about "broken, no bulbs lit" state?/
+    * /Doesn't that typically mean fallback to yield-rules for an
+      uncontrolled intersection?/
+  * +applicable direction+
+    * +facing minus-s+
+    * +facing plus-s+
+    * +both directions+
 
-*** Speed Limits
-   * longitudinal extent =[s0, s1]=
+*** =SpeedLimitRule= --- Speed Limits
+   * applicable =LaneFragment= {LaneId, s0, s1}
+   * +longitudinal extent =[s0, s1]=+
    * limit value (speed)
    * limit type:
      * strict
@@ -475,8 +514,9 @@ The rule element subtypes currently considered are:
      * trucks
      * ?
 
-*** Passing Restrictions
-  * longitudinal extent =[s0, s1]=
+*** =LaneChangeRule= --- Lane-change/Passing Restrictions
+  * applicable =LaneFragment= {LaneId, s0, s1}
+  * +longitudinal extent =[s0, s1]=+
   * direction
     * to-left
     * to-right
@@ -486,10 +526,16 @@ The rule element subtypes currently considered are:
     * pass with care ("yellow dash")
     * no passing ("yellow solid")
     * exit ("short white dash")
+  * Distinguish:
+    * purpose ("passing" vs "lane-change")
+    * constraint ("as desired" vs "as required" vs "forbidden")
+  * /Do we really care about purpose (yellow vs white) distinction here?/
+    * /Really for visualization, and something that can be estimated by
+      looking at direction/usage restrictions./
 
 *** Ongoing Route ("Turning") Restrictions
-  * which end (kStart, kFinish)
-  * ongoing LaneEnd (LaneId, WhichEnd)
+  * applicable LaneEnd {LaneId, (kStart|kFinish)}
+  * ongoing LaneEnd {LaneId, (kStart|kFinish)}
   * restricted vehicle type
     * (not) any
     * (not) bus
@@ -499,13 +545,22 @@ The rule element subtypes currently considered are:
     on the ongoing lane instead.)/
 
 *** Vehicle Restrictions
-  * longitudinal extent =[s0, s1]=
+  * applicable =LaneFragment= {LaneId, s0, s1}
+  * +longitudinal extent =[s0, s1]=+
   * vehicle type
     * high-occupancy vehicles (HOV) only
     * no trucks
     * bus only
     * emergency vehicles only
     * etc
+
+*** /Brainstorming/
+=GetApplicableRules(vector<(LaneId, min_s, max_s)>,
+                    TimeInterval,
+                    vector<RuleType>,
+                    VehicleCharacteristics)=
+
+
 
 
 ** Furniture and Physical Features /(TODO)/
