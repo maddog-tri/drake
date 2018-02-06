@@ -403,6 +403,11 @@ non-physical features that indicate how a road should be used.
 =RoadRuleset= is loosely coupled to =RoadGeometry= via entity ID's
 (=RoadGeometryId=, =LaneId=, etc).
 
+Only static features of the road network are directly captured by
+=RoadRuleset=.  Dynamic state (e.g., traffic lights) is referenced
+by entity ID's.  This allows a user to isolate dynamic state in whatever
+way is required by the user's choice of simulation framework.
+
 =RoadRuleset= provides a query-based interface: one asks for rule
 elements which affect a certain part of the road network during a
 certain time interval.  The current Lane-based query takes the form:
@@ -420,7 +425,7 @@ segment.").
 
 The return value of a query is a list of =RuleElement=.  Every element
 has the common fields:
-  * =LaneId=
+  * +=LaneId=+
   * time interval =[t0, t1)=
 
 The rule element subtypes currently considered are:
@@ -431,7 +436,7 @@ The rule element subtypes currently considered are:
   * ongoing route ("turning") restrictions
   * vehicle restrictions
 
-*** =UsageBehaviorRule= --- Direction/Usage
+*** =DirectionUsageRule= --- Direction/Usage
   * applicable =LaneFragment= {LaneId, s0, s1}
   * designation, 1 of:
     * bidirectional
@@ -441,17 +446,10 @@ The rule element subtypes currently considered are:
     * no-traffic (/e.g., median strip/)
     * parking
 
-  * +rule/designation --- 1 of:+
-    * +unspecified/bidirectional+
-    * ++s only+
-    * +-s only+
-    * +bidirectional turning lane+
-    * +restricted/no-traffic+
-  * +longitudinal extent =[s0, s1]=+
-  * +/Should "no applicable record found" equate to "unspecified"?/+
   * /More possibilities:  parking, +pedestrian, bike-lane+,.../
     * /pedestrian, bike, etc... should be vehicle-type restrictions,
       not behavior expectations./
+    * /Would allowed direction ever be variable on vehicle-type??/
 
 *** =RightOfWayRule= --- Stopping and Yielding
   * applicable controlled zone
@@ -461,15 +459,17 @@ The rule element subtypes currently considered are:
   * +longitudinal location =s=+
     * +/(Maybe should be an extent =[s0, s1]=.  E.g., consider a crosswalk as
       one stop-line or two?)/+
-  * rule
-    * static
-      * =StaticRightOfWayRule= <--- NEED A GOOD NAME
-        * complete-stop-then-go
-        * yield
-        * proceed-with-caution
-    * dynamic
-      * =DynamicRightOfWayRuleId=
-        * uncontrolled
+  * rule-state
+    * =StaticRightOfWayRuleState= <--- NEED A GOOD NAME
+      * complete-stop-then-go
+      * yield
+      * proceed-with-caution
+      * crosswalk
+      * dynamic-state
+  * dynamic-id
+    * =DynamicRightOfWayRuleId=
+    * =DynamicRightOfWayRuleState=
+        * dark-mode?
         * go
         * prepare-to-stop/stop-unless-unsafe
         * stop
@@ -481,6 +481,7 @@ The rule element subtypes currently considered are:
     * =optional<sequence of LaneFragment>= ???
   * uncontrolled yield-to regions
     * =optional<sequence of LaneFragment>= ???
+
   * signal type --- 1 of:
     * yield sign
     * stop sign
@@ -544,7 +545,7 @@ The rule element subtypes currently considered are:
   * /(Or, maybe this concept is better represented by vehicle restrictions
     on the ongoing lane instead.)/
 
-*** Vehicle Restrictions
+*** =PreferentialUseRule= --- Vehicle Restrictions
   * applicable =LaneFragment= {LaneId, s0, s1}
   * +longitudinal extent =[s0, s1]=+
   * vehicle type
@@ -553,6 +554,9 @@ The rule element subtypes currently considered are:
     * bus only
     * emergency vehicles only
     * etc
+  * /Consider:  this should be merged with UsageDirection, because
+    lane usage/direction might be specified per vehicle type./
+    /Or, maybe not./
 
 *** /Brainstorming/
 =GetApplicableRules(vector<(LaneId, min_s, max_s)>,
