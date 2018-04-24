@@ -159,9 +159,9 @@ TEST_P(IdmControllerTest, UnrestrictedUpdate) {
     dut_->CalcUnrestrictedUpdate(*context_, &state);
     const RoadPosition& rp = state.get_abstract_state<RoadPosition>(0);
     const Lane* expected_lane = road_->junction(0)->segment(0)->lane(0);
-    EXPECT_EQ(expected_lane->id(), rp.lane->id());
+    EXPECT_EQ(expected_lane->id(), rp.lane()->id());
     EXPECT_TRUE(CompareMatrices(
-        LanePosition{kEgoSPosition, 0., 0.}.srh(), rp.pos.srh()));
+        LanePosition{kEgoSPosition, 0., 0.}.srh(), rp.pos().srh()));
   }
 }
 

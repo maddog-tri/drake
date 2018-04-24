@@ -448,9 +448,9 @@ TEST_F(MaliputDragwayLaneTest, TestToRoadPositionOnRoad) {
             nearest_position, api::GeoPosition(x, y, z),
             kLinearTolerance));
         EXPECT_DOUBLE_EQ(distance, 0);
-        EXPECT_EQ(road_position.lane, expected_lane);
+        EXPECT_EQ(road_position.lane(), expected_lane);
         EXPECT_TRUE(api::test::IsLanePositionClose(
-            road_position.pos, api::LanePosition(x, y + lane_width_ / 2, z),
+            road_position.pos(), api::LanePosition(x, y + lane_width_ / 2, z),
             kLinearTolerance));
       }
     }
@@ -474,15 +474,15 @@ TEST_F(MaliputDragwayLaneTest, TestToRoadPositionOnRoad) {
             nearest_position, api::GeoPosition(x, y, z),
             kLinearTolerance));
         EXPECT_DOUBLE_EQ(distance, 0);
-        EXPECT_EQ(road_position.lane, expected_lane);
+        EXPECT_EQ(road_position.lane(), expected_lane);
         if (y == 0) {
           EXPECT_TRUE(api::test::IsLanePositionClose(
-              road_position.pos,
+              road_position.pos(),
               api::LanePosition(x, y + lane_width_ / 2, z),
               kLinearTolerance));
         } else {
           EXPECT_TRUE(api::test::IsLanePositionClose(
-              road_position.pos,
+              road_position.pos(),
               api::LanePosition(x, y - lane_width_ / 2, z),
               kLinearTolerance));
         }
@@ -572,9 +572,9 @@ TEST_F(MaliputDragwayLaneTest, TestToRoadPositionOffRoad) {
         const int expected_lane_index = (y > 0 ? 1 : 0);
         const Lane* expected_lane = dynamic_cast<const Lane*>(
             road_geometry_->junction(0)->segment(0)->lane(expected_lane_index));
-        EXPECT_EQ(road_position.lane, expected_lane);
+        EXPECT_EQ(road_position.lane(), expected_lane);
         EXPECT_TRUE(api::test::IsLanePositionClose(
-            road_position.pos,
+            road_position.pos(),
             api::LanePosition(
                 expected_nearest_position.x(),
                 expected_nearest_position.y() - expected_lane->y_offset(),

@@ -125,7 +125,7 @@ void IdmController<T>::ImplCalcAcceleration(
 
   DRAKE_DEMAND(idm_params.IsValid());
   RoadPosition ego_position = ego_rp;
-  if (!ego_rp.lane) {
+  if (!ego_rp.lane()) {
     const auto gp =
         GeoPositionT<T>::FromXyz(ego_pose.get_isometry().translation());
     ego_position =
@@ -134,16 +134,16 @@ void IdmController<T>::ImplCalcAcceleration(
 
   // Find the single closest car ahead.
   const ClosestPose<T> lead_car_pose = PoseSelector<T>::FindSingleClosestPose(
-      ego_position.lane, ego_pose, traffic_poses,
+      ego_position.lane(), ego_pose, traffic_poses,
       idm_params.scan_ahead_distance(), AheadOrBehind::kAhead,
       path_or_branches_);
   const T headway_distance = lead_car_pose.distance;
 
-  const LanePositionT<T> lane_position(T(ego_position.pos.s()),
-                                       T(ego_position.pos.r()),
-                                       T(ego_position.pos.h()));
+  const LanePositionT<T> lane_position(T(ego_position.pos().s()),
+                                       T(ego_position.pos().r()),
+                                       T(ego_position.pos().h()));
   const T s_dot_ego = PoseSelector<T>::GetSigmaVelocity(
-      {ego_position.lane, lane_position, ego_velocity});
+      {ego_position.lane(), lane_position, ego_velocity});
   const T s_dot_lead =
       (abs(lead_car_pose.odometry.pos.s()) ==
        std::numeric_limits<T>::infinity())

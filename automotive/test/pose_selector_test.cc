@@ -188,7 +188,7 @@ const Lane* get_lane(const PoseVector<T>& pose,
       ExtractDoubleOrThrow(pose.get_translation().x()),
       ExtractDoubleOrThrow(pose.get_translation().y()),
       ExtractDoubleOrThrow(pose.get_translation().z())};
-  return road.ToRoadPosition(geo_position, nullptr, nullptr, nullptr).lane;
+  return road.ToRoadPosition(geo_position, nullptr, nullptr, nullptr).lane();
 }
 
 TEST_F(PoseSelectorDragwayTest, TwoLaneDragway) {
@@ -641,7 +641,7 @@ TEST_F(PoseSelectorDragwayTest, TestGetSigmaVelocity) {
 
   // Verifies the consistency of the result when the s-value is set to
   // end-of-lane.
-  position.pos.set_s(lane->length());
+  position.set_pos([&](auto* p) { p->set_s(lane->length()); });
   sigma_v = PoseSelector<double>::GetSigmaVelocity({position, velocity});
   EXPECT_NEAR(10. * std::sqrt(2.) / 2., sigma_v, 1e-12);
 }
@@ -907,7 +907,7 @@ void CheckOnrampPosesInBranches(const maliput::api::RoadGeometry& road,
 
   ClosestPose<double> closest_pose_leading =
       PoseSelector<double>::FindSingleClosestPose(
-          ego_position.lane, ego_pose, traffic_poses,
+          ego_position.lane(), ego_pose, traffic_poses,
           1000. /* scan_ahead_distance */, ego_cases.at(ego_polarity).first,
           ScanStrategy::kBranches);
 
@@ -925,7 +925,7 @@ void CheckOnrampPosesInBranches(const maliput::api::RoadGeometry& road,
 
   const std::map<AheadOrBehind, const ClosestPose<double>> closest_poses =
       PoseSelector<double>::FindClosestPair(
-          ego_position.lane, ego_pose, traffic_poses,
+          ego_position.lane(), ego_pose, traffic_poses,
           1000. /* scan_ahead_distance */, ScanStrategy::kBranches);
 
   // Verifies that the kAhead closest pose agrees with closest_pose_leading.
@@ -938,7 +938,7 @@ void CheckOnrampPosesInBranches(const maliput::api::RoadGeometry& road,
             closest_poses.at(ego_view_1).distance);
   // Verifies that the kBehind closest pose is infinity in the ego car's lane.
   const AheadOrBehind ego_view_2 = ego_cases.at(ego_polarity).second;
-  EXPECT_EQ(ego_position.lane->id(),
+  EXPECT_EQ(ego_position.lane()->id(),
             closest_poses.at(ego_view_2).odometry.lane->id());
   EXPECT_EQ(kInf, closest_poses.at(ego_view_2).odometry.pos.s());
   EXPECT_EQ(kInf, closest_poses.at(ego_view_2).distance);

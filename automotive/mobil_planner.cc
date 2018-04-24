@@ -141,15 +141,15 @@ void MobilPlanner<T>::ImplCalcLaneDirection(
   DRAKE_DEMAND(mobil_params.IsValid());
 
   RoadPosition ego_position = ego_rp;
-  if (!ego_rp.lane) {
+  if (!ego_rp.lane()) {
     const auto gp = GeoPosition::FromXyz(ego_pose.get_isometry().translation());
     ego_position = road_.ToRoadPosition(gp, nullptr, nullptr, nullptr);
   }
   // Prepare a list of (possibly nullptr) Lanes to evaluate.
   std::pair<const Lane*, const Lane*> lanes = std::make_pair(
-      ego_position.lane->to_left(), ego_position.lane->to_right());
+      ego_position.lane()->to_left(), ego_position.lane()->to_right());
 
-  const Lane* lane = ego_position.lane;
+  const Lane* lane = ego_position.lane();
   if (lanes.first != nullptr || lanes.second != nullptr) {
     const ClosestPose<T> ego_closest_pose(
         RoadOdometry<T>(ego_position, ego_velocity), 0.);
@@ -160,9 +160,10 @@ void MobilPlanner<T>::ImplCalcLaneDirection(
     // staying in the same lane if under the threshold.
     const T threshold = mobil_params.threshold();
     if (incentives.first >= incentives.second)
-      lane = (incentives.first > threshold) ? lanes.first : ego_position.lane;
+      lane = (incentives.first > threshold) ? lanes.first : ego_position.lane();
     else
-      lane = (incentives.second > threshold) ? lanes.second : ego_position.lane;
+      lane =
+          (incentives.second > threshold) ? lanes.second : ego_position.lane();
   }
   *lane_direction = LaneDirection(lane, with_s_);
   // N.B. Assumes neighboring lanes are all confluent (i.e. with_s points in the

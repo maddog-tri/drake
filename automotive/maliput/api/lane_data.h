@@ -295,16 +295,37 @@ struct IsoLaneVelocity {
 
 /// A position in the road network, consisting of a pointer to a specific
 /// Lane and a `Lane`-frame position in that Lane.
-struct RoadPosition {
-  /// Default constructor.
+class RoadPosition {
+ public:
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(RoadPosition)
+
+  /// Default constructor, intializing with a nullptr Lane* and all-zero
+  /// LanePosition.
   RoadPosition() = default;
 
   /// Fully parameterized constructor.
-  RoadPosition(const Lane* _lane, const LanePosition& _pos)
-      : lane(_lane), pos(_pos) {}
+  RoadPosition(const Lane* lane, const LanePosition& position)
+      : lane_(lane), pos_(position) {}
 
-  const Lane* lane{};
-  LanePosition pos;
+  /// @name Getters and Setters
+  //@{
+  /// Gets `Lane*`.
+  const Lane* lane() const { return lane_; }
+  /// Sets `Lane*`.
+  void set_lane(const Lane* lane) { lane_ = lane; }
+  /// Gets `LanePosition`.
+  const LanePosition& pos() const { return pos_; }
+  /// Sets `LanePosition`.
+  void set_pos(const LanePosition& position) { pos_ = position; }
+  /// Modifies `LanePosition` via executing the `modifier` functional, which
+  /// is applied to a non-const pointer to the existing `LanePosition`.
+  template <typename T>
+  void set_pos(T modifier) { modifier(&pos_); }
+  //@}
+
+ private:
+  const Lane* lane_{};
+  LanePosition pos_;
 };
 
 

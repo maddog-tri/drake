@@ -72,17 +72,19 @@ api::RoadPosition RoadGeometry::DoToRoadPosition(
   // Note that this can be made more robust by extending this with a search that
   // extends beyond only adjacent lanes.
   if (hint != nullptr) {
-    DRAKE_DEMAND(hint->lane != nullptr);
-    road_position = {hint->lane,
-                     hint->lane->ToLanePosition(geo_position, nearest_position,
-                                                &min_distance)};
+    DRAKE_DEMAND(hint->lane() != nullptr);
+    road_position = {hint->lane(),
+                     hint->lane()->ToLanePosition(
+                         geo_position, nearest_position,
+                         &min_distance)};
     if (min_distance != 0.) {
       // Loop through ongoing lanes at both ends of the current lane, to find
       // the position associated with the first found containing lane or the
       // distance-minimizing position.
       for (const auto which_end :
            {api::LaneEnd::kStart, api::LaneEnd::kFinish}) {
-        const api::LaneEndSet* ends = hint->lane->GetOngoingBranches(which_end);
+        const api::LaneEndSet* ends =
+            hint->lane()->GetOngoingBranches(which_end);
         for (int i = 0; i < ends->size(); ++i) {
           GetPositionIfSmallerDistance(geo_position, ends->get(i).lane,
                                        &road_position, &min_distance,

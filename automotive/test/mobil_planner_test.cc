@@ -229,9 +229,9 @@ TEST_P(MobilPlannerTest, UnrestrictedUpdate) {
     systems::State<double>& state = context_->get_mutable_state();
     dut_->CalcUnrestrictedUpdate(*context_, &state);
     const RoadPosition& rp = state.get_abstract_state<RoadPosition>(0);
-    EXPECT_EQ(lane_directions_[0].lane->id(), rp.lane->id());
+    EXPECT_EQ(lane_directions_[0].lane->id(), rp.lane()->id());
     EXPECT_TRUE(CompareMatrices(LanePosition{kEgoXPosition, 0., 0.}.srh(),
-                                rp.pos.srh()));
+                                rp.pos().srh()));
   }
 }
 

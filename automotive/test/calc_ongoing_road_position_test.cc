@@ -79,11 +79,11 @@ void PerformTest(const maliput::api::RoadGeometry& rg, const Lane* lane,
   // The DUT.
   CalcOngoingRoadPosition(pose, velocity, rg, &rp);
 
-  EXPECT_TRUE(CompareMatrices(expected_lp.srh(), rp.pos.srh(), 1e-10));
+  EXPECT_TRUE(CompareMatrices(expected_lp.srh(), rp.pos().srh(), 1e-10));
   if (!expected_lane) {
-    EXPECT_EQ(RoadPosition().lane, rp.lane);
+    EXPECT_EQ(RoadPosition().lane(), rp.lane());
   } else {
-    EXPECT_EQ(expected_lane->id(), rp.lane->id());
+    EXPECT_EQ(expected_lane->id(), rp.lane()->id());
   }
 }
 
@@ -133,9 +133,9 @@ GTEST_TEST(CalcOngoingRoadPosition, TestInvalidLanes) {
   CalcOngoingRoadPosition(pose, velocity, *rg, &rp);
 
   // Expect RoadPosition to be closest to `onramp0`.
-  EXPECT_EQ(GetLaneFromId(*rg, "l:onramp0"), rp.lane);
+  EXPECT_EQ(GetLaneFromId(*rg, "l:onramp0"), rp.lane());
   EXPECT_TRUE(CompareMatrices(
-      LanePosition{100., -4., 0.}.srh(), rp.pos.srh(), 1e-10));
+      LanePosition{100., -4., 0.}.srh(), rp.pos().srh(), 1e-10));
 }
 
 GTEST_TEST(CalcOngoingRoadPosition, TestAutoDiff) {
@@ -164,8 +164,8 @@ GTEST_TEST(CalcOngoingRoadPosition, TestAutoDiff) {
   CalcOngoingRoadPosition(pose, velocity, rg, &rp);
 
   EXPECT_TRUE(CompareMatrices(
-      kSomeLanePosition.srh(), rp.pos.MakeDouble().srh(), 1e-10));
-  EXPECT_EQ(lane->id(), rp.lane->id());
+      kSomeLanePosition.srh(), rp.pos().MakeDouble().srh(), 1e-10));
+  EXPECT_EQ(lane->id(), rp.lane()->id());
 }
 
 }  // namespace

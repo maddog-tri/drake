@@ -366,7 +366,7 @@ ClosestPose<T> FindSingleClosestInBranches(
     const Lane* const traffic_lane =
         ego_lane->segment()->junction()->road_geometry()->ToRoadPosition(
             MakeGeoPosition<T>(traffic_isometry), nullptr, nullptr,
-            nullptr).lane;
+            nullptr).lane();
     // TODO(jadecastro) Supply a valid hint.
     if (traffic_lane == nullptr) continue;
 

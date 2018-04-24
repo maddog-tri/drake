@@ -26,39 +26,39 @@ void CalcOngoingRoadPosition(const PoseVector<T>& pose,
                              RoadPosition* rp) {
   DRAKE_THROW_UNLESS(rp != nullptr);
   const auto gp = GeoPositionT<T>::FromXyz(pose.get_isometry().translation());
-  if (!rp->lane) {
+  if (!rp->lane()) {
     // Do an exhaustive search.
     *rp = road.ToRoadPosition(gp.MakeDouble(), nullptr, nullptr, nullptr);
     return;
   }
 
   const double tol =
-      rp->lane->segment()->junction()->road_geometry()->linear_tolerance();
+      rp->lane()->segment()->junction()->road_geometry()->linear_tolerance();
   LanePositionT<T> lp;
   T distance;
-  lp = rp->lane->ToLanePositionT<T>(gp, nullptr, &distance);
+  lp = rp->lane()->ToLanePositionT<T>(gp, nullptr, &distance);
   if (distance <= tol) {  // Our current lane is good; just update position.
-    rp->pos = lp.MakeDouble();
+    rp->set_pos(lp.MakeDouble());
     return;
   }
 
   // Check the ongoing lanes at the end corresponding to the direction the car
   // is moving.
-  const T s_dot = PoseSelector<T>::GetSigmaVelocity({rp->lane, lp, velocity});
+  const T s_dot = PoseSelector<T>::GetSigmaVelocity({rp->lane(), lp, velocity});
   for (const auto end : {LaneEnd::kStart, LaneEnd::kFinish}) {
     // Check only the relevant lane end.  If s_dot == 0, check both ends
     // (velocity isn't informative).
     if (s_dot > 0. && end == LaneEnd::kStart) continue;
     if (s_dot < 0. && end == LaneEnd::kFinish) continue;
 
-    const LaneEndSet* branches = rp->lane->GetOngoingBranches(end);
+    const LaneEndSet* branches = rp->lane()->GetOngoingBranches(end);
     if (!branches) continue;
     for (int i{0}; i < branches->size(); ++i) {
       const LaneEnd lane_end = branches->get(i);
       lp = lane_end.lane->ToLanePositionT<T>(gp, nullptr, &distance);
       if (distance <= tol) {  // Update both the lane and position.
-        rp->pos = lp.MakeDouble();
-        rp->lane = lane_end.lane;
+        rp->set_pos(lp.MakeDouble());
+        rp->set_lane(lane_end.lane);
         return;
       }
     }
