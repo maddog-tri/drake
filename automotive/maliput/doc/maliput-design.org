@@ -397,7 +397,6 @@ of fragments that are no longer immediately necessary.
  into three:  one crossing each intersection, and one in between that
  joins those two end-to-end (resulting in three independent =Junctions=).
 
-** C++ Abstract API and Concrete Implementations
 ** Abstract Geometry API: =RoadGeometry=
  * /TODO:/  Explain semantics of object ID's.  (cross-referencing, tiling,
    debugging, visualization)
@@ -482,7 +481,7 @@ We define three levels of knowledge of rules of the road:
    is permitted.
 
 The =RoadRulebook= interface only concerns the semantic level, which is
-the level required to provide oracular ado cars with interesting
+the level required to provide oracular /ado/ cars with interesting
 interactive behaviors.
 
 #+BEGIN_QUOTE
@@ -587,7 +586,7 @@ the rules is up to the agent; =RoadRulebook= merely provides the rules.
 #   * vehicle restrictions
 
 
-Six rule types are currently implemented or envisioned:
+Six rule types are currently defined or proposed:
  * =RightOfWayRule= - control of right-of-way/priority on specific routes
  * =SpeedLimitRule= - speed limits
  * =DirectionUsageRule= - direction-of-travel specification
@@ -596,7 +595,7 @@ Six rule types are currently implemented or envisioned:
  * =PreferentialUseRule= - lane-based vehicle-type restrictions (e.g.,
    HOV lanes)
 
-*** =SpeedLimitRule= --- Speed Limits
+*** =SpeedLimitRule=: Speed Limits
    * id
    * zone (longitudinal range on a =LaneId=)
    * maximum and minimum speed limit
@@ -609,17 +608,18 @@ Six rule types are currently implemented or envisioned:
      * ...
    * /TODO/ time-of-day/calendar condition
 
-*** =RightOfWayRule= --- Stopping and Yielding
+*** =RightOfWayRule=: Stopping and Yielding
     * id
     * controlled zone
       * a contiguous longitudinal range potentially spanning multiple =LaneId='s
-      * /This is directional:  entry-point or stop-line would be at the
-        beginning of first fragment./
-    * type (enumeration)
-      * "Proceed"
+      * /This is directional:  "entry-point" or "stop-line" would be at the
+        beginning of the range./
+    * type enumeration
+      * "Proceed":  Vehicles have right of way, but should avoid stopping
+        within the controlled zone (e.g., pedestrian crosswalk).
       * "Yield"
       * "StopThenGo"
-      * "Dynamic"
+      * "Dynamic": Rule has dynamic state.
     * "Dynamic" rules delegate to a =RightOfWayStateProvider= which provides
       a more complex enumeration of states:
       * "Uncontrolled" (e.g., dark mode)
@@ -658,7 +658,7 @@ Six rule types are currently implemented or envisioned:
 #     * +facing plus-s+
 #     * +both directions+
 
-*** =DirectionUsageRule= --- Direction/Usage /(TODO/Proposed)/
+*** /(TODO)/ =DirectionUsageRule=: Direction/Usage
    * id
    * zone (longitudinal range on a =LaneId=)
    * designation, 1 of:
@@ -670,7 +670,7 @@ Six rule types are currently implemented or envisioned:
      * parking
    * time-of-day/calendar condition?
 
-*** =LaneChangeRule= --- Lane-change/Passing Restrictions /(TODO/Proposed)/
+*** /(TODO)/ =LaneChangeRule=: Lane-change/Passing Restrictions
    * id
    * zone (longitudinal range on a =LaneId=)
    * applicable direction
@@ -686,7 +686,7 @@ Six rule types are currently implemented or envisioned:
      =DirectionUsageRule=?
    * time-of-day/calendar condition?
 
-*** =OngoingRouteRule= --- "Turning" Restrictions /(TODO/Proposed)/
+*** /(TODO)/ =OngoingRouteRule=: "Turning" Restrictions
    * id
    * applicable =LaneEnd= (i.e., ={LaneId, (kStart|kFinish)}=)
    * ongoing =LaneEnd=
@@ -699,7 +699,7 @@ Six rule types are currently implemented or envisioned:
    * /(Or, maybe this concept is better represented by vehicle restrictions
      on the ongoing lane instead.)/
 
-*** =PreferentialUseRule= --- Vehicle Restrictions /(TODO/Proposed)/
+*** /(TODO)/ =PreferentialUseRule=: Vehicle Restrictions
    * id
    * zone (longitudinal range on a =LaneId=)
    * vehicle type
@@ -715,7 +715,7 @@ Six rule types are currently implemented or envisioned:
 
 
 
-** Furniture and Physical Features /(TODO)/
+** /(TODO)/ Furniture and Physical Features
 Database of physical features with spatial location and extent.  In many
 cases these are related to rules in the =RoadRulebook= (e.g., signs and
 stripes are indicators for rules of the road).
