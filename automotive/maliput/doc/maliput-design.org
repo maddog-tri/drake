@@ -447,19 +447,16 @@ of fragments that are no longer immediately necessary.
 
 * Rules and Features Databases
 
-
-
-
 ** Rules of the Road: =RoadRulebook=
 
 A =RoadRulebook= expresses the semantic "rules of the road" for a road
 network, as rule elements associated to components of a =RoadGeometry=.
 In a real, physical road network, road rules are typically signalled to
-users via signs or striping, though some rules (e.g., "drive on the
-right-hand side") are expected to be prior knowledge.  =RoadRulebook=
-abstracts away from both the physical artifacts and the symbolic state
-of such signals, and directly represents the intended use of a road
-network at a semantic level.
+users via signs or striping, though some rules are expected to be prior
+knowledge (e.g., "We drive on the right-hand side here.").
+=RoadRulebook= abstracts away from both the physical artifacts and the
+symbolic state of such signals, and directly represents the intended use
+of a road network at a semantic level.
 
 We define three levels of knowledge of rules of the road:
  * /Physical/Sensory/ comprises the physical artifacts (or simulated model
@@ -485,15 +482,15 @@ the level required to provide oracular /ado/ cars with interesting
 interactive behaviors.
 
 #+BEGIN_QUOTE
-/Other API's may be developed to express the sensory and symbolic
+/Future API's may be developed to express the sensory and symbolic
 levels of expression, and to coordinate between all three as required./
 #+END_QUOTE
 
 We distinguish two kinds of state:
  * /Static state/ comprises the aspects of a simulation which are
    established before the simulation begins and which cannot evolve
-   during the runtime of the simulation.  This can be considered the
-   configuration of a simulation.
+   during the runtime of the simulation.  This can be considered to be
+   the configuration of a simulation.
  * /Dynamic state/ comprises the aspects of a simulation which can evolve
    during the runtime as the simulation's time progresses.
 
@@ -527,15 +524,15 @@ by a different =*Rule= class.  Rules are associated to a road network
 by referring to components of a =RoadGeometry= via component ID’s. Each
 rule is itself identified by a unique type-specific ID.  This ID is the
 handle for manipulating the rule during rulebook configuration, and for
-associating the rule with physical and/or symbolic models in a
+associating the rule with physical/symbolic models and/or dynamic state in a
 simulation.  A rule generally consists of static state, e.g., the speed
 limit as posted for a lane. Some rules may involve dynamic state as
 well. Any dynamic state will be provided by a separate entity, with an
 abstract interface for each flavor of dynamic state. For example, a
-=RightOfWayRule= may refer to dynamic state (i.e., if it represents a
+=RightOfWayRule= may refer to dynamic state (e.g., if it represents a
 traffic light) via its =RightOfWayRule::Id=. An implementation of the
-=RightOfWayStateProvider= abstract interface will be tasked with
-returning the current state for a given id via its =GetState()= method.
+=RightOfWayStateProvider= abstract interface will, via its =GetState()= method,
+return the current state for a given =RightOfWayRule::Id=.
 How those states are managed and evolved over time is up to the
 implementation.
 
@@ -589,10 +586,10 @@ the rules is up to the agent; =RoadRulebook= merely provides the rules.
 Six rule types are currently defined or proposed:
  * =RightOfWayRule= - control of right-of-way/priority on specific routes
  * =SpeedLimitRule= - speed limits
- * =DirectionUsageRule= - direction-of-travel specification
- * =LaneChangeRule= - adjacent-lane transition restrictions
- * =OngoingRouteRule= - turning restrictions
- * =PreferentialUseRule= - lane-based vehicle-type restrictions (e.g.,
+ * /(TODO)/ =DirectionUsageRule= - direction-of-travel specification
+ * /(TODO)/ =LaneChangeRule= - adjacent-lane transition restrictions
+ * /(TODO)/ =OngoingRouteRule= - turning restrictions
+ * /(TODO)/ =PreferentialUseRule= - lane-based vehicle-type restrictions (e.g.,
    HOV lanes)
 
 *** =SpeedLimitRule=: Speed Limits
