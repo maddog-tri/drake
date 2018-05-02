@@ -446,7 +446,6 @@ of fragments that are no longer immediately necessary.
  * /TODO:/  Basics of yaml format
 
 * Rules and Features Databases
-
 ** Rules of the Road: =RoadRulebook=
 
 A =RoadRulebook= is expresses the semantic "rules of the road" for a road
@@ -497,46 +496,34 @@ We distinguish two kinds of state:
  * /Dynamic state/ comprises the aspects of a simulation which can evolve
    during the runtime as the simulation's time progresses.
 
-# Goals
-#
-# Express enough semantic-level rules of the road to enable the
-# development of versatile ado car behaviors as well as spoofing of
-# semantic level input to ego planners.
-
-
 The =RoadRulebook= design decouples static state from dynamic
 state. Dynamic state needs to be managed during the runtime of a
 simulation, and different simulation frameworks have different
 requirements for how they represent and manage dynamic state.  In
 particular, the =drake= system framework requires that all dynamic state
 can be externalized and collated into a single generic state vector
-(called the “Context”), and the =RoadRulebook= design facilitates such
-a scheme. Decoupling the dynamic and static state also aids
-development; once the (small) interface between the two is established,
-development of API’s for each kind of state can proceed in parallel.
-
-
-# Axioms
-#
-# The basic structure of the =RoadRulebook= API is as follows:
+(called the “Context”), and the =RoadRulebook= design facilitates such a
+scheme. Decoupling the dynamic and static state also aids development;
+once the (small) interface between the two is established, development
+of API’s for each kind of state can proceed in parallel.
 
 =RoadRulebook= is an abstract interface which provides query methods to
 return rule instances which match some filter parameters, e.g., rules
-which involve a specified =Lane=.  Each flavor of rule is represented
-by a different =*Rule= class.  Rules are associated to a road network
-by referring to components of a =RoadGeometry= via component ID’s. Each
+which involve a specified =Lane=.  Each flavor of rule is represented by
+a different =*Rule= class.  Rules are associated to a road network by
+referring to components of a =RoadGeometry= via component ID’s. Each
 rule is itself identified by a unique type-specific ID.  This ID is the
 handle for manipulating the rule during rulebook configuration, and for
-associating the rule with physical/symbolic models and/or dynamic state in a
-simulation.  A rule generally consists of static state, e.g., the speed
-limit as posted for a lane. Some rules may involve dynamic state as
-well. Any dynamic state will be provided by a separate entity, with an
-abstract interface for each flavor of dynamic state. For example, a
+associating the rule with physical/symbolic models and/or dynamic state
+in a simulation.  A rule generally consists of static state, e.g., the
+speed limit as posted for a lane. Some rules may involve dynamic state
+as well. Any dynamic state will be provided by a separate entity, with
+an abstract interface for each flavor of dynamic state. For example, a
 =RightOfWayRule= may refer to dynamic state (e.g., if it represents a
 traffic light) via its =RightOfWayRule::Id=. An implementation of the
-=RightOfWayStateProvider= abstract interface will, via its =GetState()= method,
-return the current state for a given =RightOfWayRule::Id=.
-How those states are managed and evolved over time is up to the
+=RightOfWayStateProvider= abstract interface will, via its =GetState()=
+method, return the current state for a given =RightOfWayRule::Id=.  How
+those states are managed and evolved over time is up to the
 implementation.
 
 Road rules can generally be interpreted as restrictions on behavior,
@@ -545,46 +532,6 @@ For example, if a =RoadRulebook= does not provide a =SpeedLimitRule=
 for some section of the road network, then there is no speed limit
 established for that section of road.  Whether or not an agent follows
 the rules is up to the agent; =RoadRulebook= merely provides the rules.
-
-
-# =RoadRulebook= provides an API for querying "rules of the road", the
-# non-physical features that indicate how a road should be used.
-# =RoadRulebook= is loosely coupled to =RoadGeometry= via entity ID's
-# (=RoadGeometryId=, =LaneId=, etc).
-#
-# Only static features of the road network are directly captured by
-# =RoadRulebook=.  Dynamic state (e.g., traffic lights) is referenced
-# by entity ID's.  This allows a user to isolate dynamic state in whatever
-# way is required by the user's choice of simulation framework.
-
-# =RoadRulebook= provides a query-based interface: one asks for rule
-# elements which affect a certain part of the road network during a
-# certain time interval.  The current Lane-based query takes the form:
-#
-# #+BEGIN_QUOTE
-# Return all rule elements affecting a specified =LaneId= which are
-# effective during the time interval =[t0, t1)= and within the
-# longitudinal range =[s0, s1]=, potentially limited to specified rule
-# types.
-# #+END_QUOTE
-#
-# Filtering by =SegmentId= or =JunctionId= would be useful as well
-# (e.g., "Tell me speed limits of all adjacent lanes in my current
-# segment.").
-
-# The return value of a query is a list of =RuleElement=.  Every element
-# has the common fields:
-#   * +=LaneId=+
-#   * time interval =[t0, t1)=
-#
-# The rule element subtypes currently considered are:
-#   * direction/usage
-#   * priority/right-of-way
-#   * speed limits
-#   * lane-change/passing restrictions
-#   * ongoing route ("turning") restrictions
-#   * vehicle restrictions
-
 
 Six rule types are currently defined or proposed:
  * =SpeedLimitRule= - speed limits
@@ -641,26 +588,6 @@ intersections").
         dark, e.g., fallback to 'yield to right' rule)
       * e.g., capture semantics of N-way stop signs
       * e.g., capture semantics of flashing turn arrows
-#   * signal type --- 1 of:
-#     * yield sign
-#     * stop sign
-#       * 1-way
-#       * N-way (with reference to adjacent signs?)
-#       * /(Or, is N-way to be determined by examining junction geometry?)/
-#     * stop-light
-#       * unique-id
-#       * /Should static rules be implemented via =[t0, t1)= intervals?/
-#         /Or should all stop-lights' state be via Id reference to a
-#         controller object living somewhere else?/
-#     * +crosswalk?+
-#   * /Can yield-to regions ever change depending on dynamic rule state?/
-#   * /What about "broken, no bulbs lit" state?/
-#     * /Doesn't that typically mean fallback to yield-rules for an
-#       uncontrolled intersection?/
-#   * +applicable direction+
-#     * +facing minus-s+
-#     * +facing plus-s+
-#     * +both directions+
 
 /Dynamic/ rules delegate to a =RightOfWayStateProvider= which provides
 a more complex enumeration of =DynamicState=:
@@ -674,6 +601,7 @@ a more complex enumeration of =DynamicState=:
       * /StopThenGo/
 
 *** /(TODO)/ =DirectionUsageRule=: Direction/Usage
+/Captures allowed direction-of-travel./
    * id
    * zone (longitudinal range on a =LaneId=)
    * allowed use:
@@ -686,6 +614,7 @@ a more complex enumeration of =DynamicState=:
    * time-of-day/calendar condition?
 
 *** /(TODO)/ =LaneChangeRule=: Lane-change/Passing Restrictions
+/Captures restrictions on lateral/adjacent lane transitions./
    * id
    * zone (longitudinal range on a =LaneId=)
    * applicable direction
@@ -702,6 +631,7 @@ a more complex enumeration of =DynamicState=:
    * time-of-day/calendar condition?
 
 *** /(TODO)/ =OngoingRouteRule=: "Turning" Restrictions
+/Captures restrictions on longitudinal/end-to-end lane transitions./
    * id
    * applicable =LaneEnd= (i.e., ={LaneId, (kStart|kFinish)}=)
    * ongoing =LaneEnd=
@@ -715,6 +645,7 @@ a more complex enumeration of =DynamicState=:
      on the ongoing lane instead.)/
 
 *** /(TODO)/ =PreferentialUseRule=: Vehicle Restrictions
+/Captures vehicle-type traffic restrictions./
    * id
    * zone (longitudinal range on a =LaneId=)
    * vehicle type
@@ -726,9 +657,6 @@ a more complex enumeration of =DynamicState=:
    * time-of-day/calendar condition?
    * /Should this should be merged with =DirectionUsageRule=, because
      lane usage/direction might be specified per vehicle type?/
-
-
-
 
 ** /(TODO)/ Furniture and Physical Features
 Database of physical features with spatial location and extent.  In many
