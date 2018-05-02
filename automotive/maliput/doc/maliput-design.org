@@ -448,14 +448,19 @@ of fragments that are no longer immediately necessary.
 * Rules and Features Databases
 ** Rules of the Road: =RoadRulebook=
 
-A =RoadRulebook= is expresses the semantic "rules of the road" for a road
-network, as rule elements associated to components of a =RoadGeometry=.
-In a real, physical road network, road rules are typically signalled to
-users via signs or striping, though some rules are expected to be prior
-knowledge (e.g., "We drive on the right-hand side here.").
-=RoadRulebook= abstracts away from both the physical artifacts and the
-symbolic state of such signals, and directly represents the intended use
-of a road network at a semantic level.
+A =RoadRulebook= (Figure [[fig:road-rulebook]]) expresses the semantic
+"rules of the road" for a road network, as rule elements associated to
+components of a =RoadGeometry=.  In a real, physical road network, road
+rules are typically signalled to users via signs or striping, though
+some rules are expected to be prior knowledge (e.g., "We drive on the
+right-hand side here.").  =RoadRulebook= abstracts away from both the
+physical artifacts and the symbolic state of such signals, and directly
+represents the intended use of a road network at a semantic level.
+
+#+CAPTION: =RoadRulebook= outline.
+#+LABEL: fig:road-rulebook
+#+ATTR_LATEX: :height 0.6\textheight
+[[./road-rulebook-outline.pdf]]
 
 Note that =RoadRulebook= is an abstract API.  =maliput= also provides a
 simple concrete implementation of this API, =SimpleRulebook=.
@@ -690,3 +695,5 @@ stripes are indicators for rules of the road).
 #+LATEX_HEADER: \usepackage{enumitem}
 #+LATEX_HEADER: \setlist[itemize]{itemsep=0.1em,parsep=0.1em,topsep=0.1em,partopsep=0.1em}
 #+LATEX_HEADER: \usepackage{amsmath}
+#+LATEX_HEADER: \renewcommand\floatpagefraction{0.8}
+#+LATEX_HEADER: \renewcommand\topfraction{0.8}
