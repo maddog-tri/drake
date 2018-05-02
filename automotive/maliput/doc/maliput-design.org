@@ -449,7 +449,7 @@ of fragments that are no longer immediately necessary.
 
 ** Rules of the Road: =RoadRulebook=
 
-A =RoadRulebook= expresses the semantic "rules of the road" for a road
+A =RoadRulebook= is expresses the semantic "rules of the road" for a road
 network, as rule elements associated to components of a =RoadGeometry=.
 In a real, physical road network, road rules are typically signalled to
 users via signs or striping, though some rules are expected to be prior
@@ -457,6 +457,9 @@ knowledge (e.g., "We drive on the right-hand side here.").
 =RoadRulebook= abstracts away from both the physical artifacts and the
 symbolic state of such signals, and directly represents the intended use
 of a road network at a semantic level.
+
+Note that =RoadRulebook= is an abstract API.  =maliput= also provides a
+simple concrete implementation of this API, =SimpleRulebook=.
 
 We define three levels of knowledge of rules of the road:
  * /Physical/Sensory/ comprises the physical artifacts (or simulated model
@@ -584,8 +587,8 @@ the rules is up to the agent; =RoadRulebook= merely provides the rules.
 
 
 Six rule types are currently defined or proposed:
- * =RightOfWayRule= - control of right-of-way/priority on specific routes
  * =SpeedLimitRule= - speed limits
+ * =RightOfWayRule= - control of right-of-way/priority on specific routes
  * /(TODO)/ =DirectionUsageRule= - direction-of-travel specification
  * /(TODO)/ =LaneChangeRule= - adjacent-lane transition restrictions
  * /(TODO)/ =OngoingRouteRule= - turning restrictions
@@ -593,40 +596,44 @@ Six rule types are currently defined or proposed:
    HOV lanes)
 
 *** =SpeedLimitRule=: Speed Limits
+A =SpeedLimitRule= describes speed limits on a longitudinal range of a Lane.
+It comprises:
    * id
    * zone (longitudinal range on a =LaneId=)
-   * maximum and minimum speed limit
+   * maximum and minimum speed limits (in which a minimum of zero is
+     effectively no minimum)
    * severity:
-     * strict
-     * advisory
-   * /TODO/ applicable vehicle type:
+     * /strict/ (e.g., in the US, black-on-white posted limit)
+     * /advisory/ (e.g., in the US, black-on-yellow advisory limit on curves)
+   * /TODO/ applicable vehicle type (for limits applying to specific types):
      * any
      * trucks
      * ...
    * /TODO/ time-of-day/calendar condition
 
 *** =RightOfWayRule=: Stopping and Yielding
+A =RightOfWayRule= describes which vehicles have right-of-way (also known as
+"priority") when operating on intersecting regions of the road network.
+In the real world, such rules are typically signalled by stop signs, yield
+signs, and traffic lights, or are understood as implicit knowledge of the
+local laws (e.g., "vehicle on the right has priority at uncontrolled
+intersections").
+
+=RightOfWayRule= comprises the static state of such rules:
     * id
     * controlled zone
-      * a contiguous longitudinal range potentially spanning multiple =LaneId='s
-      * /This is directional:  "entry-point" or "stop-line" would be at the
-        beginning of the range./
-    * type enumeration
-      * "Proceed":  Vehicles have right of way, but should avoid stopping
+      * a contiguous longitudinal range potentially spanning multiple
+        =LaneId='s
+      * /This is directional: the beginning of the range is considered
+        the "entry-point" or "stop-line"./
+    * type
+      * /Proceed/:  Vehicles have right of way, but should avoid stopping
         within the controlled zone (e.g., pedestrian crosswalk).
-      * "Yield"
-      * "StopThenGo"
-      * "Dynamic": Rule has dynamic state.
-    * "Dynamic" rules delegate to a =RightOfWayStateProvider= which provides
-      a more complex enumeration of states:
-      * "Uncontrolled" (e.g., dark mode)
-      * "Go"
-      * "PrepareToStop"
-      * "Stop"
-      * "PrepareToGo"
-      * "ProceedWithCaution"
-      * "Yield"
-      * "StopThenGo"
+      * /Yield/:  E.g., a yield sign --- vehicle may continue but must yield
+        to conflicting traffic.
+      * /StopThenGo/:  E.g., a stop sign --- vehicle must come to a complete
+        stop before proceeding.
+      * /Dynamic/:  rule is determined by dynamic state.
     * /TODO/ capture more complex yield semantics:
       * controlled yield-to zones (e.g., whom to yield to when signals are
         active/functioning)
@@ -655,16 +662,27 @@ Six rule types are currently defined or proposed:
 #     * +facing plus-s+
 #     * +both directions+
 
+/Dynamic/ rules delegate to a =RightOfWayStateProvider= which provides
+a more complex enumeration of =DynamicState=:
+      * /Uncontrolled/ (e.g., dark mode)
+      * /Go/
+      * /PrepareToStop/
+      * /Stop/
+      * /PrepareToGo/
+      * /ProceedWithCaution/
+      * /Yield/
+      * /StopThenGo/
+
 *** /(TODO)/ =DirectionUsageRule=: Direction/Usage
    * id
    * zone (longitudinal range on a =LaneId=)
-   * designation, 1 of:
-     * bidirectional
-     * unidirectional, s increasing
-     * unidirectional, s decreasing
-     * bidirectional, turning-only
-     * no-traffic (/e.g., median strip/)
-     * parking
+   * allowed use:
+     * /bidirectional/ (e.g., non-striped single-lane residential street)
+     * /unidirectional, s increasing/
+     * /unidirectional, s decreasing/
+     * /bidirectional, turning-only/
+     * /no-traffic/ (e.g., median strip)
+     * /parking-lane/
    * time-of-day/calendar condition?
 
 *** /(TODO)/ =LaneChangeRule=: Lane-change/Passing Restrictions
