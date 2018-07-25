@@ -27,10 +27,12 @@ drake_cc_library(
     srcs = [
         "generate_obj.cc",
         "generate_urdf.cc",
+        "junction_analysis.cc",
     ],
     hdrs = [
         "generate_obj.h",
         "generate_urdf.h",
+        "junction_analysis.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -99,6 +101,15 @@ drake_cc_googletest(
 
 drake_cc_googletest(
     name = "generate_urdf_test",
+    deps = [
+        ":utility",
+        "//automotive/maliput/monolane",
+        "@spruce",
+    ],
+)
+
+drake_cc_googletest(
+    name = "junction_analysis_test",
     deps = [
         ":utility",
         "//automotive/maliput/monolane",
