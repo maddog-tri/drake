@@ -1,10 +1,10 @@
 #include "drake/automotive/maliput/utility/junction_analysis.h"
 
+#include <iostream>
 #include <queue>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
-
-#include <iostream>
 
 namespace drake {
 namespace maliput {

@@ -112,7 +112,7 @@ drake_cc_googletest(
     name = "junction_analysis_test",
     deps = [
         ":utility",
-        "//automotive/maliput/monolane",
+        "//automotive/maliput/multilane:loader",
         "@spruce",
     ],
 )
