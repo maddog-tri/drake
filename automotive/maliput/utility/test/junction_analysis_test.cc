@@ -1,11 +1,11 @@
 #include "drake/automotive/maliput/utility/junction_analysis.h"
 
-#include <cmath>
-#include <fstream>
+#include <set>
+#include <string>
 
 #include <gtest/gtest.h>
-#include <spruce.hh>
 
+#include "drake/automotive/maliput/api/segment.h"
 #include "drake/automotive/maliput/multilane/loader.h"
 
 namespace drake {
@@ -13,7 +13,7 @@ namespace maliput {
 namespace utility {
 namespace {
 
-GTEST_TEST(JunctionAnalysisAnalyzeConfluentSegments, Xxx) {
+GTEST_TEST(JunctionAnalysisAnalyzeConfluentSegments, BasicOperation) {
   std::string dut_yaml = R"R(# -*- yaml -*-
 ---
 # distances are meters; angles are degrees.
@@ -36,65 +36,77 @@ maliput_multilane_builder:
       lanes: [2, 0, 0]
       start: ["ref", "points.origin.forward"]
       length:  100
-      z_end: ["ref", [0, 0, 0, 0]]
+      z_end: ["ref", [0, 0, 0]]
     east1:
       lanes: [2, 0, 0]
       start: ["lane.0", "connections.east0.end.0.forward"]
       length: 100
-      z_end: ["lane.0", [0, 0, 0, 0]]
-##    east2:
-##      lanes: [2, 0, 0]
-##      start: ["lane.0", "connections.east1.end.0.forward"]
-##      length: 100
-##      z_end: ["lane.0", [0, 0, 0, 0]]
-##
-##    loop:
-##      lanes: [1, 0, 0]
-##      start: ["lane.0", "connections.east3.end.0.forward"]
-##      arc: [150, -270]
-##      z_end: ["lane.0", [0, 0, 0, 0]]
-##
-##    north0:
-##      lanes: [2, 0, 0]
-##      start: ["lane.0", "connections.loop.end.0.forward"]
-##      length: 100
-##      z_end: ["lane.0", [0, 0, 0, 0]]
-##    north1:
-##      lanes: [2, 0, 0]
-##      start: ["lane.0", "connections.north0.end.0.forward"]
-##      length: 100
-##      z_end: ["lane.0", [0, 0, 0, 0]]
-##    north2:
-##      lanes: [2, 0, 0]
-##      start: ["lane.0", "connections.north1.end.0.forward"]
-##      length: 100
-##      z_end: ["lane.0", [0, 0, 0, 0]]
-##
-##    turn:
-##      lanes: [1, 0, 0]
-##      start: ["lane.0", "connections.east0.end.0.forward"]
-##      arc: [50, -90]
-##      explicit_end: ["lane.0", "connections.north0.end.reverse"]
+      z_end: ["lane.0", [0, 0, 0]]
+    east2:
+      lanes: [2, 0, 0]
+      start: ["lane.0", "connections.east1.end.0.forward"]
+      length: 100
+      z_end: ["lane.0", [0, 0, 0]]
+
+    loop:
+      lanes: [1, 0, 0]
+      start: ["lane.0", "connections.east2.end.0.forward"]
+      arc: [150, -270]
+      z_end: ["lane.0", [0, 0, 0]]
+
+    north0:
+      lanes: [2, 0, 0]
+      start: ["lane.0", "connections.loop.end.0.forward"]
+      length: 100
+      z_end: ["lane.0", [0, 0, 0]]
+    north1:
+      lanes: [2, 0, 0]
+      start: ["lane.0", "connections.north0.end.0.forward"]
+      length: 100
+      z_end: ["lane.0", [0, 0, 0]]
+    north2:
+      lanes: [2, 0, 0]
+      start: ["lane.0", "connections.north1.end.0.forward"]
+      length: 100
+      z_end: ["lane.0", [0, 0, 0]]
+
+    turn:
+      lanes: [1, 0, 0]
+      start: ["lane.0", "connections.east0.end.0.forward"]
+      arc: [50, -90]
+      explicit_end: ["lane.0", "connections.north0.end.0.reverse"]
 
   groups: {}
 )R";
-
-
   std::unique_ptr<const api::RoadGeometry> rg =
       multilane::Load(multilane::BuilderFactory(), dut_yaml);
-
-  auto errors = rg->CheckInvariants();
 
   std::vector<std::unordered_set<const api::Segment*>> groups =
       AnalyzeConfluentSegments(rg.get());
 
-  for (auto& group : groups) {
-    std::cerr << "GROUP:\n";
-    for (auto& segment : group) {
-      std::cerr << "   " << segment->id().string() << "\n";
-    }
+  auto lookup_segment = [&rg] (const std::string& id_string) {
+    return rg->ById().GetSegment(api::SegmentId(id_string));
+  };
+  std::set<std::set<const api::Segment*>> expected
+      {{lookup_segment("s:east0")},
+       {lookup_segment("s:east2")},
+       {lookup_segment("s:north0")},
+       {lookup_segment("s:north2")},
+       {lookup_segment("s:loop")},
+       {lookup_segment("s:north1"),
+        lookup_segment("s:east1"),
+        lookup_segment("s:turn")}
+      };
+
+  // Recast groups as "set of sets" (instead of "vector of unordered_sets")
+  // to make equality testing trivial.
+  std::set<std::set<const api::Segment*>> actual;
+  for (const auto& group : groups) {
+    std::set<const api::Segment*> set(group.begin(), group.end());
+    actual.insert(set);
   }
-  EXPECT_TRUE(false);
+
+  EXPECT_EQ(actual, expected);
 }
 
 
