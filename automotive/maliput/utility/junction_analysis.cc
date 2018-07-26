@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <iostream>
+
 namespace drake {
 namespace maliput {
 namespace utility {
@@ -12,6 +14,7 @@ namespace detail {
 
 std::unordered_set<const api::Segment*>
 ExploreSegment(const api::Segment* segment) {
+  std::cerr << "Explore " << segment->id().string() << "\n";
   // Make an empty work-queue.
   std::queue<const api::Segment*> workqueue;
   // Make an empty visited set.
@@ -24,6 +27,7 @@ ExploreSegment(const api::Segment* segment) {
   while (!workqueue.empty()) {
     const api::Segment* working_segment = workqueue.front();
     workqueue.pop();
+    std::cerr << "   working on " << working_segment->id().string() << "\n";
 
     // Loop over each Lane in the Segment
     for (int li = 0; li < working_segment->num_lanes(); ++li) {
