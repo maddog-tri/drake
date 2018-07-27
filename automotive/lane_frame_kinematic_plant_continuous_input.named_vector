@@ -1,0 +1,14 @@
+namespace: "drake::automotive"
+
+element {
+     name: "forward_acceleration"
+     doc: "acceleration in forward (heading) direction"
+     doc_units: "m/s^2"
+     default_value: "0.0"
+}
+element {
+     name: "curvature"
+     doc: "curvature of turn"
+     doc_units: "1/m"
+     default_value: "0.0"
+}
