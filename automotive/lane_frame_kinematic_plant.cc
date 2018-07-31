@@ -1,5 +1,6 @@
 #include "drake/automotive/lane_frame_kinematic_plant.h"
 
+#include "drake/automotive/maliput/api/lane_data.h"
 #include "drake/common/default_scalars.h"
 #include "drake/systems/framework/event.h"
 #include "drake/systems/framework/leaf_system.h"
@@ -12,8 +13,9 @@ namespace automotive {
 template <typename T>
 LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
     : systems::LeafSystem<T>(
-          systems::SystemTypeTag<automotive::LaneFrameKinematicPlant>{}) {
-  // Model for LaneId for port declarations.
+// XXX          systems::SystemTypeTag<automotive::LaneFrameKinematicPlant>{}
+) {
+  // Model for Lane* for port declarations.
   const maliput::api::Lane* kModelLanePointer{};
 
   // Declare state.
@@ -22,11 +24,12 @@ LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
                                2, 2, 0);
 
   // Declare input.
-  /* xxx_ = */
-  this->DeclareVectorInputPort(LaneFrameKinematicPlantContinuousInput<T>());
-  /* xxx_ = */
+  continuous_input_port_index_ =
+      this->DeclareVectorInputPort(
+          LaneFrameKinematicPlantContinuousInput<T>()).get_index();
+  abstract_input_port_index_ =
   this->DeclareAbstractInputPort(
-      systems::Value<const maliput::api::Lane*>());
+      systems::Value<const maliput::api::Lane*>()).get_index();
 
   // Declare output.
   /* xxx_ = */
@@ -97,8 +100,10 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
     systems::ContinuousState<T>* raw_derivatives) const {
   // Obtain the current state.
   const LaneFrameKinematicPlantContinuousState<T>& cstate =
-      context.get_continuous_state_vector();
-  const maliput::api::Lane* lane = context.get_abstract_state();
+      get_continuous_state(context);
+  // TODO(maddog@tri.global)  zero index is magic.
+  const maliput::api::Lane* lane =
+      context.template get_abstract_state<const maliput::api::Lane*>(0);
 
   // Obtain the parameters.
 // XXX   const EndlessRoadCarConfig<T>& config =
@@ -108,34 +113,35 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
 
   // Obtain the inputs.
   const LaneFrameKinematicPlantContinuousInput<T>* const input =
-      EvalVectorInput(context, continuous_input_port_.get_index());
+      this->template EvalVectorInput<LaneFrameKinematicPlantContinuousInput>(
+          context, continuous_input_port_index_);
 
   // Recall:  centripetal acceleration = v^2 / r.
   // TODO(maddog@tri.global)  Correct with lane s-path curvature.
   const T lateral_acceleration =
-      state.speed() * state.speed() * input.curvature();
+      cstate.speed() * cstate.speed() * input->curvature();
 
   // Position + velocity ---> position derivatives.
-  const maliput::api::LanePosition lane_position(state.s(), state.r(), 0.);
+  const maliput::api::LanePosition lane_position(cstate.s(), cstate.r(), 0.);
   const maliput::api::IsoLaneVelocity lane_velocity(
-      state.speed() * cos(state.heading()),
-      state.speed() * sin(state.heading()),
+      cstate.speed() * cos(cstate.heading()),
+      cstate.speed() * sin(cstate.heading()),
       0.);
   const maliput::api::LanePosition iso_derivatives =
       lane->EvalMotionDerivatives(lane_position, lane_velocity);
 
   const T heading_dot =
-      (cstate.speed() == 0.) ? 0. : (lateral_acceleration / state.speed());
-  const T speed_dot = input.forward_acceleration();
+      (cstate.speed() == 0.) ? 0. : (lateral_acceleration / cstate.speed());
+  const T speed_dot = input->forward_acceleration();
 
   // Return the state's derivatives.
   LaneFrameKinematicPlantContinuousState<T>& derivatives =
-      raw_derivatives.get_mutable_continuous_state();
-  derivatives->set_s(iso_derivatives.s());
-  derivatives->set_r(iso_derivatives.r());
+      get_mutable_continuous_state(raw_derivatives);
+  derivatives.set_s(iso_derivatives.s());
+  derivatives.set_r(iso_derivatives.r());
   // Ignore iso_derivatives.h_, which should be zero anyhow.
-  derivatives->set_heading(heading_dot);
-  derivatives->set_speed(speed_dot);
+  derivatives.set_heading(heading_dot);
+  derivatives.set_speed(speed_dot);
 
 // XXX  // Magic Guard Rail:  If car is at driveable bounds, clamp r-derivative.
 // XXXmaliput::api::RBounds bounds = road_->lane()->driveable_bounds(state.s());
@@ -206,6 +212,8 @@ void LaneFrameKinematicPlant<T>::DoGetWitnessFunctions(
 }  // namespace automotive
 }  // namespace drake
 
+// TODO(maddog@tri.global)  Maybe later, maybe never?
+// DRAKE_DEFINE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
+//     class ::drake::automotive::LaneFrameKinematicPlant)
 
-DRAKE_DEFINE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class ::drake::automotive::LaneFrameKinematicPlant)
+template class ::drake::automotive::LaneFrameKinematicPlant<double>;

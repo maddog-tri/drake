@@ -79,10 +79,10 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
 
   LaneFrameKinematicPlant();
 
-  /// Scalar-converting copy constructor.  See @ref system_scalar_conversion.
-  template <typename U>
-  explicit LaneFrameKinematicPlant(const LaneFrameKinematicPlant<U>&)
-      : LaneFrameKinematicPlant<T>() {}
+// XXX/// Scalar-converting copy constructor. See @ref system_scalar_conversion.
+// XXX   template <typename U>
+// XXX   explicit LaneFrameKinematicPlant(const LaneFrameKinematicPlant<U>&)
+// XXX       : LaneFrameKinematicPlant<T>() {}
 
 
 
@@ -114,6 +114,33 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
 
 
 
+  static const LaneFrameKinematicPlantContinuousState<T>&
+      get_continuous_state(const systems::ContinuousState<T>& state) {
+    return dynamic_cast<const LaneFrameKinematicPlantContinuousState<T>&>(
+        state.get_vector());
+  }
+
+  static const LaneFrameKinematicPlantContinuousState<T>&
+      get_continuous_state(const systems::Context<T>& context) {
+    return get_continuous_state(context.get_continuous_state());
+  }
+
+
+  static LaneFrameKinematicPlantContinuousState<T>&
+      get_mutable_continuous_state(systems::ContinuousState<T>* state) {
+    return dynamic_cast<LaneFrameKinematicPlantContinuousState<T>&>(
+        state->get_mutable_vector());
+  }
+
+  static LaneFrameKinematicPlantContinuousState<T>&
+      get_mutable_continuous_state(systems::Context<T>* context) {
+    return get_mutable_continuous_state(
+        &context->get_mutable_continuous_state());
+  }
+
+
+
+
   void DoCalcTimeDerivatives(
       const systems::Context<T>& context,
       systems::ContinuousState<T>* derivatives) const override;
@@ -136,6 +163,9 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
       std::vector<const systems::WitnessFunction<T>*>* witnesses)
       const override;
 
+
+  int continuous_input_port_index_{-1};
+  int abstract_input_port_index_{-1};
 
   std::unique_ptr<systems::WitnessFunction<T>> signed_distance_witness_;
 };
