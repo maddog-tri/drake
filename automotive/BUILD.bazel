@@ -44,6 +44,7 @@ drake_cc_package_library(
         ":idm_controller",
         ":idm_planner",
         ":lane_direction",
+        ":lane_frame_kinematic_plant",
         ":maliput_railcar",
         ":mobil_planner",
         ":monolane_onramp_merge",
@@ -82,6 +83,8 @@ drake_cc_vector_gen_library(
         "dynamic_bicycle_car_params.named_vector",
         "dynamic_bicycle_car_state.named_vector",
         "idm_planner_parameters.named_vector",
+        "lane_frame_kinematic_plant_continuous_input.named_vector",
+        "lane_frame_kinematic_plant_continuous_state.named_vector",
         "maliput_railcar_params.named_vector",
         "mobil_planner_parameters.named_vector",
         "pure_pursuit_params.named_vector",
@@ -237,6 +240,18 @@ drake_cc_library(
     hdrs = ["lane_direction.h"],
     deps = [
         "//automotive/maliput/api",
+    ],
+)
+
+drake_cc_library(
+    name = "lane_frame_kinematic_plant",
+    srcs = ["lane_frame_kinematic_plant.cc"],
+    hdrs = ["lane_frame_kinematic_plant.h"],
+    deps = [
+        ":generated_vectors",
+        "//automotive/maliput/api",
+        "//math:geometric_transform",
+        "//systems/framework:leaf_system",
     ],
 )
 
@@ -671,6 +686,18 @@ drake_cc_googletest(
     deps = [
         "//automotive:dynamic_bicycle_car",
         "//systems/framework/test_utilities",
+    ],
+)
+
+drake_cc_googletest(
+    name = "lane_frame_kinematic_plant_test",
+    deps = [
+        "//automotive:lane_frame_kinematic_plant",
+        "//automotive/maliput/api",
+        "//automotive/maliput/dragway",
+        "//automotive/maliput/monolane",
+        "//common/test_utilities:eigen_matrix_compare",
+        "//math:geometric_transform",
     ],
 )
 

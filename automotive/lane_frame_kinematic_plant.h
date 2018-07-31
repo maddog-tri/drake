@@ -3,6 +3,9 @@
 #include <memory>
 #include <vector>
 
+#include "drake/automotive/gen/lane_frame_kinematic_plant_continuous_input.h"
+#include "drake/automotive/gen/lane_frame_kinematic_plant_continuous_state.h"
+#include "drake/automotive/maliput/api/lane.h"
 #include "drake/systems/framework/event.h"
 #include "drake/systems/framework/leaf_system.h"
 #include "drake/systems/framework/witness_function.h"
@@ -44,8 +47,8 @@ namespace automotive {
 ///
 /// Instantiated templates for the following scalar types @p T are provided:
 /// - double
-//XXX /// - drake::AutoDiffXd
-//XXX /// - symbolic::Expression
+// XXX /// - drake::AutoDiffXd
+// XXX /// - symbolic::Expression
 ///
 /// @tparam T The vector element type, which must be a valid Eigen scalar.
 ///
@@ -54,11 +57,11 @@ namespace automotive {
 /// Inputs:
 ///   * kappa (double, 1/m, curvature)
 ///   * a (double, m/s^2, longitudinal acceleration)
-///   * next_lane_id (maliput::api::LaneId)
+///   * next_lane (const maliput::api::Lane*)
 ///
 /// States: vertical position (state index 0) and velocity (state index 1) in
 /// units of m and m/s, respectively.
-///   * lane_id  (maliput::api::LaneId)
+///   * lane  (const maliput::api::Lane*)
 ///   * s  (double, m)
 ///   * r  (double, m)
 ///   * heading  (double, rad)
@@ -102,7 +105,8 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
   }
 
   void CopyOutAbstractState(
-      const systems::Context<T>& context, api::LaneId* output) const;
+      const systems::Context<T>& context,
+      const maliput::api::Lane** output) const;
 
   void CopyOutContinuousState(
       const systems::Context<T>& context,
@@ -112,74 +116,29 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
 
   void DoCalcTimeDerivatives(
       const systems::Context<T>& context,
-      systems::ContinuousState<T>* derivatives) const override {
-    // Obtain the state.
-    const systems::VectorBase<T>& state = context.get_continuous_state_vector();
-
-    // Obtain the structure we need to write into.
-    DRAKE_ASSERT(derivatives != nullptr);
-    systems::VectorBase<T>& derivatives_vec = derivatives->get_mutable_vector();
-
-    // Time derivative of position (state index 0) is velocity.
-    derivatives_vec.SetAtIndex(0, state.GetAtIndex(1));
-
-    // Time derivative of velocity (state index 1) is acceleration.
-    derivatives_vec.SetAtIndex(1, T(get_gravitational_acceleration()));
-  }
+      systems::ContinuousState<T>* derivatives) const override;
 
   void SetDefaultState(const systems::Context<T>&,
-                       systems::State<T>* state) const override {
-    DRAKE_DEMAND(state != nullptr);
-    Vector2<T> x0;
-    x0 << 10.0, 0.0;  // initial state values.
-    state->get_mutable_continuous_state().SetFromVector(x0);
-  }
+                       systems::State<T>* state) const override;
 
   // Updates the velocity discontinuously to reverse direction. This method
   // is called by the Simulator when the signed distance witness function
   // triggers.
-  void DoCalcUnrestrictedUpdate(const systems::Context<T>& context,
+  void DoCalcUnrestrictedUpdate(
+      const systems::Context<T>& context,
       const std::vector<const systems::UnrestrictedUpdateEvent<T>*>&,
-      systems::State<T>* next_state) const override {
-    systems::VectorBase<T>& next_cstate =
-        next_state->get_mutable_continuous_state().get_mutable_vector();
-
-    // Get present state.
-    const systems::VectorBase<T>& cstate =
-        context.get_continuous_state().get_vector();
-
-    // Copy the present state to the new one.
-    next_state->CopyFrom(context.get_state());
-
-    // Verify that velocity is non-positive.
-    DRAKE_DEMAND(cstate.GetAtIndex(1) <= 0.0);
-
-    // Update the velocity using Newtonian restitution (note that Newtonian
-    // restitution can lead to unphysical energy gains, as described in
-    // [Stronge 1991]). For this reason, other impact models are generally
-    // preferable.
-    //
-    // [Stronge 1991]  W. J. Stronge. Unraveling paradoxical theories for rigid
-    //                 body collisions. J. Appl. Mech., 58:1049-1055, 1991.
-    next_cstate.SetAtIndex(
-        1, cstate.GetAtIndex(1) * restitution_coef_ * -1.);
-  }
+      systems::State<T>* next_state) const override;
 
   // The signed distance witness function is always active and, hence, always
   // returned.
   void DoGetWitnessFunctions(
       const systems::Context<T>&,
       std::vector<const systems::WitnessFunction<T>*>* witnesses)
-      const override {
-    witnesses->push_back(signed_distance_witness_.get());
-  }
+      const override;
 
-  const double restitution_coef_ = 1.0;  // Coefficient of restitution.
 
-  // The witness function for computing the signed distance between the ball
-  // and the ground.
   std::unique_ptr<systems::WitnessFunction<T>> signed_distance_witness_;
 };
 
-}  // namespace bouncing_ball
+}  // namespace automotive
 }  // namespace drake
