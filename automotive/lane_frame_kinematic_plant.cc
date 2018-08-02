@@ -24,36 +24,65 @@ LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
                                2, 2, 0);
 
   // Declare input.
+  abstract_input_port_index_ =
+      this->DeclareAbstractInputPort(
+          systems::Value<const maliput::api::Lane*>()).get_index();
   continuous_input_port_index_ =
       this->DeclareVectorInputPort(
           LaneFrameKinematicPlantContinuousInput<T>()).get_index();
-  abstract_input_port_index_ =
-  this->DeclareAbstractInputPort(
-      systems::Value<const maliput::api::Lane*>()).get_index();
 
   // Declare output.
-  /* xxx_ = */
-  this->DeclareAbstractOutputPort(
-      kModelLanePointer,
-      &LaneFrameKinematicPlant::CopyOutAbstractState);
-  /* xxx_ = */
-  this->DeclareVectorOutputPort(
-      LaneFrameKinematicPlantContinuousState<T>(),
-      &LaneFrameKinematicPlant::CopyOutContinuousState);
+  abstract_output_port_index_ =
+      this->DeclareAbstractOutputPort(
+          kModelLanePointer,
+          &LaneFrameKinematicPlant::CopyOutAbstractState).get_index();
+  continuous_output_port_index_ =
+      this->DeclareVectorOutputPort(
+          LaneFrameKinematicPlantContinuousState<T>(),
+          &LaneFrameKinematicPlant::CopyOutContinuousState).get_index();
 
   // Declare witness functions.
-  /* xxx_ = */
-  this->DeclareWitnessFunction(
-      "Longitudinal bounds check",
-      systems::WitnessFunctionDirection::kNegativeThenNonNegative,
-      &LaneFrameKinematicPlant::CheckLongitudinalLaneBounds,
-      systems::UnrestrictedUpdateEvent<T>());
-  /* xxx_ = */
-  this->DeclareWitnessFunction(
-      "Longitudinal bounds check",
-      systems::WitnessFunctionDirection::kNegativeThenNonNegative,
-      &LaneFrameKinematicPlant::CheckLateralLaneBounds,
-      systems::UnrestrictedUpdateEvent<T>());
+  longitudinal_bounds_witness_ =
+      this->DeclareWitnessFunction(
+          "Longitudinal bounds check",
+          systems::WitnessFunctionDirection::kNegativeThenNonNegative,
+          &LaneFrameKinematicPlant::CheckLongitudinalLaneBounds,
+          systems::UnrestrictedUpdateEvent<T>());
+  lateral_bounds_witness_ =
+      this->DeclareWitnessFunction(
+          "Lateral bounds check",
+          systems::WitnessFunctionDirection::kNegativeThenNonNegative,
+          &LaneFrameKinematicPlant::CheckLateralLaneBounds,
+          systems::UnrestrictedUpdateEvent<T>());
+}
+
+
+
+template <typename T>
+const systems::InputPort<T>&
+LaneFrameKinematicPlant<T>::continuous_input() const {
+  return this->get_input_port(continuous_input_port_index_);
+}
+
+
+template <typename T>
+const systems::InputPort<T>&
+LaneFrameKinematicPlant<T>::abstract_input() const {
+  return this->get_input_port(abstract_input_port_index_);
+}
+
+
+template <typename T>
+const systems::OutputPort<T>&
+LaneFrameKinematicPlant<T>::continuous_output() const {
+  return this->get_output_port(continuous_output_port_index_);
+}
+
+
+template <typename T>
+const systems::OutputPort<T>&
+LaneFrameKinematicPlant<T>::abstract_output() const {
+  return this->get_output_port(abstract_output_port_index_);
 }
 
 
@@ -153,26 +182,23 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
 }
 
 
-#if 0
-template <typename T>
-void LaneFrameKinematicPlant<T>::SetDefaultState(
-    const systems::Context<T>&,
-    systems::State<T>* state) const override {
-  DRAKE_DEMAND(state != nullptr);
-  Vector2<T> x0;
-  x0 << 10.0, 0.0;  // initial state values.
-  state->get_mutable_continuous_state().SetFromVector(x0);
-}
+// XXX template <typename T>
+// XXX void LaneFrameKinematicPlant<T>::SetDefaultState(
+// XXX     const systems::Context<T>&,
+// XXX     systems::State<T>* state) const override {
+// XXX   DRAKE_DEMAND(state != nullptr);
+// XXX   Vector2<T> x0;
+// XXX   x0 << 10.0, 0.0;  // initial state values.
+// XXX   state->get_mutable_continuous_state().SetFromVector(x0);
+// XXX }
 
 
-// Updates the velocity discontinuously to reverse direction. This method
-// is called by the Simulator when the signed distance witness function
-// triggers.
 template <typename T>
 void LaneFrameKinematicPlant<T>::DoCalcUnrestrictedUpdate(
     const systems::Context<T>& context,
     const std::vector<const systems::UnrestrictedUpdateEvent<T>*>&,
-    systems::State<T>* next_state) const override {
+    systems::State<T>* next_state) const {
+#if 0
   systems::VectorBase<T>& next_cstate =
       next_state->get_mutable_continuous_state().get_mutable_vector();
 
@@ -195,19 +221,19 @@ void LaneFrameKinematicPlant<T>::DoCalcUnrestrictedUpdate(
   //                 body collisions. J. Appl. Mech., 58:1049-1055, 1991.
   next_cstate.SetAtIndex(
       1, cstate.GetAtIndex(1) * restitution_coef_ * -1.);
+#endif
 }
 
 
-// The signed distance witness function is always active and, hence, always
-// returned.
 template <typename T>
 void LaneFrameKinematicPlant<T>::DoGetWitnessFunctions(
     const systems::Context<T>&,
-    std::vector<const systems::WitnessFunction<T>*>* witnesses)
-    const override {
-  witnesses->push_back(signed_distance_witness_.get());
+    std::vector<const systems::WitnessFunction<T>*>* witnesses) const {
+  // Both witness functions are always active.
+  witnesses->push_back(longitudinal_bounds_witness_.get());
+  witnesses->push_back(lateral_bounds_witness_.get());
 }
-#endif
+
 
 }  // namespace automotive
 }  // namespace drake

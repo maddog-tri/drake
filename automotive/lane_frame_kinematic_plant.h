@@ -54,22 +54,34 @@ namespace automotive {
 ///
 /// They are already available to link against in the containing library.
 ///
-/// Inputs:
-///   * kappa (double, 1/m, curvature)
-///   * a (double, m/s^2, longitudinal acceleration)
-///   * next_lane (const maliput::api::Lane*)
+/// Input:
+///   * Abstract
+///     * next_lane (const maliput::api::Lane*)
+///   * Continuous:
+///       * LaneFrameKinematicPlantContinuousInput:
+///         * kappa (double, 1/m, curvature)
+///         * a (double, m/s^2, longitudinal acceleration)
 ///
-/// States: vertical position (state index 0) and velocity (state index 1) in
-/// units of m and m/s, respectively.
-///   * lane  (const maliput::api::Lane*)
-///   * s  (double, m)
-///   * r  (double, m)
-///   * heading  (double, rad)
-///   * speed  (double, m/s)
+/// State:
+///   * Abstract:
+///     * lane  (const maliput::api::Lane*)
+///   * Continuous:
+///     * LaneFrameKinematicPlantContinuousState:
+///       * s  (double, m)
+///       * r  (double, m)
+///       * heading  (double, rad)
+///       * speed  (double, m/s)
 ///
-/// Outputs:
-///   * state
-///   ??? reflected inputs?
+/// Outputs:  (mirror of state)
+///   * Abstract:
+///     * lane  (const maliput::api::Lane*)
+///   * Continuous:
+///     * LaneFrameKinematicPlantContinuousState:
+///       * s  (double, m)
+///       * r  (double, m)
+///       * heading  (double, rad)
+///       * speed  (double, m/s)
+///
 // TODO(maddog@tri.global) Let some other System do the "rendering" conversion
 //                         of lane-frame to world-frame PoseBundle/etc.
 template <typename T>
@@ -83,6 +95,15 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
 // XXX   template <typename U>
 // XXX   explicit LaneFrameKinematicPlant(const LaneFrameKinematicPlant<U>&)
 // XXX       : LaneFrameKinematicPlant<T>() {}
+
+
+  /// Getter methods for input and output ports.
+  /// @{
+  const systems::InputPort<T>& continuous_input() const;
+  const systems::InputPort<T>& abstract_input() const;
+  const systems::OutputPort<T>& continuous_output() const;
+  const systems::OutputPort<T>& abstract_output() const;
+  /// @}
 
 
 
@@ -145,8 +166,8 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
       const systems::Context<T>& context,
       systems::ContinuousState<T>* derivatives) const override;
 
-  void SetDefaultState(const systems::Context<T>&,
-                       systems::State<T>* state) const override;
+// XXX   void SetDefaultState(const systems::Context<T>&,
+// XXX                        systems::State<T>* state) const override;
 
   // Updates the velocity discontinuously to reverse direction. This method
   // is called by the Simulator when the signed distance witness function
@@ -167,7 +188,11 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
   int continuous_input_port_index_{-1};
   int abstract_input_port_index_{-1};
 
-  std::unique_ptr<systems::WitnessFunction<T>> signed_distance_witness_;
+  int continuous_output_port_index_{-1};
+  int abstract_output_port_index_{-1};
+
+  std::unique_ptr<systems::WitnessFunction<T>> longitudinal_bounds_witness_;
+  std::unique_ptr<systems::WitnessFunction<T>> lateral_bounds_witness_;
 };
 
 }  // namespace automotive
