@@ -23,6 +23,29 @@ class LaneFrameKinematicPlantTest : public::testing::Test {
     context_ = dut_->CreateDefaultContext();
   }
 
+  std::unique_ptr<const api::RoadGeometry> MakeBasicRoad() {
+
+    const double kStraightLength = 100.;
+    const double kCurveRadius = 50.;
+
+    multilane::Builder b(kLaneWidth, kElevationBounds,
+                         kLinearTolerance, kAngularTolerance, kScaleLength,
+                         kComputationPolicy);
+
+    auto straight = b.Connect(
+        "straight", kThreeLaneLayout,
+        StartLane(0).at(kOrigin, Direction::kForward),
+        LineOffset(kStraightLength),
+        EndLane(0).z_at(kLowFlatZ, Direction::kForward));
+    auto curve = b.Connect(
+        "curve", kThreeLaneLayout,
+        StartLane(0).at(curve, 1, Which::kFinish, Direction::kForward),
+        ArcOffset(50., M_PI),
+        EndLane(0).z_at(kLowFlatZ, Direction::kForward));
+
+    return b->Build(api::RoadGeometryId("basic-road"));
+  }
+
 
   LaneFrameKinematicPlantContinuousState<double>& continuous_state() {
     auto result = dynamic_cast<LaneFrameKinematicPlantContinuousState<double>*>(
@@ -96,6 +119,67 @@ TEST_F(LaneFrameKinematicPlantTest, SystemTopology) {
 
 
 TEST_F(LaneFrameKinematicPlantTest, OutputCopiesState) {
+  // Set up state in context_.
+  api::Lane* const kExpectedLane = reinterpret_cast<api::Lane*>(0xDeadBeef);
+  constexpr double kExpectedS = 99.9;
+  constexpr double kExpectedR = -2.3;
+  constexpr double kExpectedHeading = 0.32;
+  constexpr double kExpectedSpeed = 500.7;
+  abstract_state().lane = kExpectedLane;
+  continuous_state().set_s(kExpectedS);
+  continuous_state().set_r(kExpectedR);
+  continuous_state().set_heading(kExpectedHeading);
+  continuous_state().set_speed(kExpectedSpeed);
+
+  // Run dut_.
+  std::unique_ptr<systems::SystemOutput<double>> output =
+      dut_->AllocateOutput();
+  dut_->CalcOutput(*context_, output.get());
+
+  // Verify results.
+  EXPECT_EQ(abstract_output(output.get()).lane, kExpectedLane);
+  EXPECT_EQ(continuous_output(output.get()).s(), kExpectedS);
+  EXPECT_EQ(continuous_output(output.get()).r(), kExpectedR);
+  EXPECT_EQ(continuous_output(output.get()).heading(), kExpectedHeading);
+  EXPECT_EQ(continuous_output(output.get()).speed(), kExpectedSpeed);
+}
+
+
+TEST_F(LaneFrameKinematicPlantTest, Derivatives) {
+
+  // Set up plumbing for derivatives results.
+  std::unique_ptr<systems::ContinuousState<double>> derivatives_state =
+      dut_->AllocateTimeDerivatives();
+  LaneFrameKinematicPlantContinuousState<double>& derivatives =
+      dynamic_cast<LaneFrameKinematicPlantContinuousState<double>>(
+          derivatives_state->get_mutable_vector());
+
+  // Set up state in context_...
+  abstract_state().lane = ...;
+  continuous_state().set_s(...);
+  continuous_state().set_r(...);
+  continuous_state().set_heading(...);
+  continuous_state().set_speed(...);
+
+  // Set up input...
+  abstract_input().ongoing_lane = ...;
+  continuous_input().forward_acceleration = ...;
+  continuous_input().curvature = ...;
+
+  // Run dut_.
+  dut_->CalcTimeDerivatives(*context_, derivatives_state.get());
+
+
+  // Verify results.
+  EXPECT_EQ(derivatives.s(), kExpectedDs);
+  EXPECT_EQ(derivatives.r(), kExpectedDr);
+  EXPECT_EQ(derivatives.heading(), kExpectedDheading);
+  EXPECT_EQ(derivatives.speed(), kExpectedDspeed);
+
+
+
+
+
   // Set up state in context_.
   api::Lane* const kExpectedLane = reinterpret_cast<api::Lane*>(0xDeadBeef);
   constexpr double kExpectedS = 99.9;
