@@ -127,12 +127,6 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
 
   T CheckLateralLaneBounds(const systems::Context<T>& context) const;
 
-  void CopyStateOut(const systems::Context<T>& context,
-                    systems::BasicVector<T>* output) const {
-    output->get_mutable_value() =
-        context.get_continuous_state().CopyToVector();
-  }
-
   void CopyOutAbstractState(const systems::Context<T>& context,
                             AbstractState* output) const;
 

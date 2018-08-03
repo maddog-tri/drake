@@ -120,7 +120,11 @@ template <typename T>
 void LaneFrameKinematicPlant<T>::CopyOutContinuousState(
     const systems::Context<T>& context,
     LaneFrameKinematicPlantContinuousState<T>* output) const {
-  output->SetFromVector(context.get_continuous_state().CopyToVector());
+  // TODO(maddog@tri.global)  Three ways (at least) of copying the vector...
+  //                          Which way is the best?
+  // output->SetFromVector(context.get_continuous_state().CopyToVector());
+  // output->set_value(context.get_continuous_state().CopyToVector());
+  output->get_mutable_value() = context.get_continuous_state().CopyToVector();
 }
 
 
