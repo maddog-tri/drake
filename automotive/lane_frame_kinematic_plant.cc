@@ -15,18 +15,19 @@ LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
     : systems::LeafSystem<T>(
 // XXX          systems::SystemTypeTag<automotive::LaneFrameKinematicPlant>{}
 ) {
-  // Model for Lane* for port declarations.
-  const maliput::api::Lane* kModelLanePointer{};
+  // Model for AbstractState for abstract state declarations.
+  const AbstractState kModelAbstractState{};
 
   // Declare state.
-  this->DeclareAbstractState(systems::AbstractValue::Make(kModelLanePointer));
+  abstract_state_index_ = this->DeclareAbstractState(
+      systems::AbstractValue::Make(kModelAbstractState));
   this->DeclareContinuousState(LaneFrameKinematicPlantContinuousState<T>(),
                                2, 2, 0);
 
   // Declare input.
   abstract_input_port_index_ =
       this->DeclareAbstractInputPort(
-          systems::Value<const maliput::api::Lane*>()).get_index();
+          systems::Value<AbstractInput>()).get_index();
   continuous_input_port_index_ =
       this->DeclareVectorInputPort(
           LaneFrameKinematicPlantContinuousInput<T>()).get_index();
@@ -34,7 +35,7 @@ LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
   // Declare output.
   abstract_output_port_index_ =
       this->DeclareAbstractOutputPort(
-          kModelLanePointer,
+          kModelAbstractState,
           &LaneFrameKinematicPlant::CopyOutAbstractState).get_index();
   continuous_output_port_index_ =
       this->DeclareVectorOutputPort(
@@ -60,28 +61,28 @@ LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
 
 template <typename T>
 const systems::InputPort<T>&
-LaneFrameKinematicPlant<T>::continuous_input() const {
+LaneFrameKinematicPlant<T>::continuous_input_port() const {
   return this->get_input_port(continuous_input_port_index_);
 }
 
 
 template <typename T>
 const systems::InputPort<T>&
-LaneFrameKinematicPlant<T>::abstract_input() const {
+LaneFrameKinematicPlant<T>::abstract_input_port() const {
   return this->get_input_port(abstract_input_port_index_);
 }
 
 
 template <typename T>
 const systems::OutputPort<T>&
-LaneFrameKinematicPlant<T>::continuous_output() const {
+LaneFrameKinematicPlant<T>::continuous_output_port() const {
   return this->get_output_port(continuous_output_port_index_);
 }
 
 
 template <typename T>
 const systems::OutputPort<T>&
-LaneFrameKinematicPlant<T>::abstract_output() const {
+LaneFrameKinematicPlant<T>::abstract_output_port() const {
   return this->get_output_port(abstract_output_port_index_);
 }
 
@@ -109,9 +110,9 @@ T LaneFrameKinematicPlant<T>::CheckLateralLaneBounds(
 template <typename T>
 void LaneFrameKinematicPlant<T>::CopyOutAbstractState(
     const systems::Context<T>& context,
-    const maliput::api::Lane** output) const {
-  // TODO(maddog@tri.global)  0 index is a magic value.
-  *output = context.template get_abstract_state<const maliput::api::Lane*>(0);
+    AbstractState* output) const {
+  *output = context.template get_abstract_state<AbstractState>(
+      abstract_state_index_);
 }
 
 
@@ -130,9 +131,8 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
   // Obtain the current state.
   const LaneFrameKinematicPlantContinuousState<T>& cstate =
       get_continuous_state(context);
-  // TODO(maddog@tri.global)  zero index is magic.
-  const maliput::api::Lane* lane =
-      context.template get_abstract_state<const maliput::api::Lane*>(0);
+  AbstractState astate = context.template get_abstract_state<AbstractState>(
+      abstract_state_index_);
 
   // Obtain the parameters.
 // XXX   const EndlessRoadCarConfig<T>& config =
@@ -157,7 +157,7 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
       cstate.speed() * sin(cstate.heading()),
       0.);
   const maliput::api::LanePosition iso_derivatives =
-      lane->EvalMotionDerivatives(lane_position, lane_velocity);
+      astate.lane->EvalMotionDerivatives(lane_position, lane_velocity);
 
   const T heading_dot =
       (cstate.speed() == 0.) ? 0. : (lateral_acceleration / cstate.speed());

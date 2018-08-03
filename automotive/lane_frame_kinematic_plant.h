@@ -42,9 +42,6 @@ namespace automotive {
 /// @ingroup automotive_systems
 
 
-/// Dynamical representation of the idealized hybrid dynamics
-/// of a ball dropping from a height and bouncing on a surface.
-///
 /// Instantiated templates for the following scalar types @p T are provided:
 /// - double
 // XXX /// - drake::AutoDiffXd
@@ -56,7 +53,8 @@ namespace automotive {
 ///
 /// Input:
 ///   * Abstract
-///     * next_lane (const maliput::api::Lane*)
+///     * LaneFrameKinematicPlant::AbstractInput:
+///       * next_lane  (const maliput::api::Lane*)
 ///   * Continuous:
 ///       * LaneFrameKinematicPlantContinuousInput:
 ///         * kappa (double, 1/m, curvature)
@@ -64,7 +62,8 @@ namespace automotive {
 ///
 /// State:
 ///   * Abstract:
-///     * lane  (const maliput::api::Lane*)
+///     * LaneFrameKinematicPlant::AbstractState:
+///       * lane  (const maliput::api::Lane*)
 ///   * Continuous:
 ///     * LaneFrameKinematicPlantContinuousState:
 ///       * s  (double, m)
@@ -74,7 +73,8 @@ namespace automotive {
 ///
 /// Outputs:  (mirror of state)
 ///   * Abstract:
-///     * lane  (const maliput::api::Lane*)
+///     * LaneFrameKinematicPlant::AbstractState:
+///       * lane  (const maliput::api::Lane*)
 ///   * Continuous:
 ///     * LaneFrameKinematicPlantContinuousState:
 ///       * s  (double, m)
@@ -87,6 +87,14 @@ namespace automotive {
 template <typename T>
 class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
  public:
+  struct AbstractState {
+    const maliput::api::Lane* lane{};
+  };
+
+  struct AbstractInput {
+    const maliput::api::Lane* next_lane{};
+  };
+
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(LaneFrameKinematicPlant);
 
   LaneFrameKinematicPlant();
@@ -99,10 +107,10 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
 
   /// Getter methods for input and output ports.
   /// @{
-  const systems::InputPort<T>& continuous_input() const;
-  const systems::InputPort<T>& abstract_input() const;
-  const systems::OutputPort<T>& continuous_output() const;
-  const systems::OutputPort<T>& abstract_output() const;
+  const systems::InputPort<T>& continuous_input_port() const;
+  const systems::InputPort<T>& abstract_input_port() const;
+  const systems::OutputPort<T>& continuous_output_port() const;
+  const systems::OutputPort<T>& abstract_output_port() const;
   /// @}
 
 
@@ -125,9 +133,8 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
         context.get_continuous_state().CopyToVector();
   }
 
-  void CopyOutAbstractState(
-      const systems::Context<T>& context,
-      const maliput::api::Lane** output) const;
+  void CopyOutAbstractState(const systems::Context<T>& context,
+                            AbstractState* output) const;
 
   void CopyOutContinuousState(
       const systems::Context<T>& context,
@@ -184,6 +191,8 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
       std::vector<const systems::WitnessFunction<T>*>* witnesses)
       const override;
 
+
+  int abstract_state_index_{-1};
 
   int continuous_input_port_index_{-1};
   int abstract_input_port_index_{-1};
