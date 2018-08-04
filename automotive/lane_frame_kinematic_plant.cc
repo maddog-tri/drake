@@ -153,8 +153,8 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
 
   // Recall:  centripetal acceleration = v^2 / r.
   // TODO(maddog@tri.global)  Correct with lane's s-path curvature.
-  //  const T lateral_acceleration =
-  //      cstate.speed() * cstate.speed() * input->curvature();
+  const T lateral_acceleration =
+      cstate.speed() * cstate.speed() * input->curvature();
   input->curvature();
 
   // Position + velocity ---> position derivatives.
@@ -164,9 +164,9 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
       cstate.speed() * sin(cstate.heading()),
       0.);
   DRAKE_THROW_UNLESS(astate.lane != nullptr);
-  //  const maliput::api::LanePosition iso_derivatives =
+  const maliput::api::LanePosition iso_derivatives =
       astate.lane->EvalMotionDerivatives(lane_position, lane_velocity);
-#if 0
+
   const T heading_dot =
       (cstate.speed() == 0.) ? 0. : (lateral_acceleration / cstate.speed());
   const T speed_dot = input->forward_acceleration();
@@ -179,7 +179,7 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
   // Ignore iso_derivatives.h_, which should be zero anyhow.
   derivatives.set_heading(heading_dot);
   derivatives.set_speed(speed_dot);
-#endif
+
 // XXX  // Magic Guard Rail:  If car is at driveable bounds, clamp r-derivative.
 // XXXmaliput::api::RBounds bounds = road_->lane()->driveable_bounds(state.s());
 // XXX   if (state.r() <= bounds.r_min) {
