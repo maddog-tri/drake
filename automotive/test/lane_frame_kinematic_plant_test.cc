@@ -185,26 +185,62 @@ TEST_F(LaneFrameKinematicPlantTest, OutputCopiesState) {
 }
 
 
-TEST_F(LaneFrameKinematicPlantTest, Derivatives) {
+struct DerivativesTestParameters {
+  struct State {
+    std::string lane_id;
+    double s_fraction{};  // fraction of lane's length
+    double r{};
+    double heading{};
+    double speed{};
+  } state;
+  struct Input {
+    double forward_acceleration{};
+    double curvature{};
+  } input;
+  struct expected {
+    double ds{};
+    double dr{};
+    double dheading{};
+    double dspeed{};
+  } expected;
+};
+
+std::ostream& operator<<(std::ostream& os, const DerivativesTestParameters& p) {
+  return os << fmt::format(
+      "DerivativesTestParameters( State( lane_id '{}', s_fraction {}, r {}, "
+      "heading {}, speed {}), Input( forward_acceleration {}, curvature {}), "
+      "Expected( ds {}, dr {}, dheading {}, dspeed {}))",
+      p.state.lane_id,
+      p.state.r, p.state.s_fraction, p.state.heading, p.state.speed,
+      p.input.forward_acceleration, p.input.curvature,
+      p.expected.ds, p.expected.dr, p.expected.dheading, p.expected.dspeed);
+}
+
+class LaneFrameKinematicPlantDerivativesTest
+    : public LaneFrameKinematicPlantTest,
+      public testing::WithParamInterface<DerivativesTestParameters> {};
+
+
+
+TEST_P(LaneFrameKinematicPlantDerivativesTest, Derivatives) {
+  const DerivativesTestParameters& p = GetParam();
+
   // Set up state in context_...
   const std::unique_ptr<const api::RoadGeometry> road = MakeBasicRoad();
   const api::Lane* const lane =
-        road->ById().GetLane(api::LaneId("l:straight_0"));
+      road->ById().GetLane(api::LaneId(p.state.lane_id));
   ASSERT_TRUE(lane != nullptr);
-  const double kInitialSpeed = 2.0;
   abstract_state().lane = lane;
-  continuous_state().set_s(0.5 * lane->length());
-  continuous_state().set_r(0.);
-  continuous_state().set_heading(0.);
-  continuous_state().set_speed(kInitialSpeed);
+  continuous_state().set_s(p.state.s_fraction * lane->length());
+  continuous_state().set_r(p.state.r);
+  continuous_state().set_heading(p.state.heading);
+  continuous_state().set_speed(p.state.speed);
 
   // Set up input...
-  const double kInputAcceleration = 10.;
-  const double kInputCurvature = 0.;
   set_abstract_input({lane});
   LaneFrameKinematicPlantContinuousInput<double> input;
-  input.set_forward_acceleration(kInputAcceleration);
-  input.set_curvature(kInputCurvature);
+  input.set_forward_acceleration(p.input.forward_acceleration);
+  input.set_curvature(p.input.curvature);
   set_continuous_input(input);
 
   // Run dut_.
@@ -213,18 +249,20 @@ TEST_F(LaneFrameKinematicPlantTest, Derivatives) {
   dut_->CalcTimeDerivatives(*context_, derivatives_state.get());
 
   // Verify results.
-  const double kExpectedDs = kInitialSpeed;
-  const double kExpectedDr = 0.;
-  const double kExpectedDheading = 0.;
-  const double kExpectedDspeed = kInputAcceleration;
   LaneFrameKinematicPlantContinuousState<double>& derivatives =
       dynamic_cast<LaneFrameKinematicPlantContinuousState<double>&>(
           derivatives_state->get_mutable_vector());
-  EXPECT_EQ(derivatives.s(), kExpectedDs);
-  EXPECT_EQ(derivatives.r(), kExpectedDr);
-  EXPECT_EQ(derivatives.heading(), kExpectedDheading);
-  EXPECT_EQ(derivatives.speed(), kExpectedDspeed);
+  EXPECT_EQ(derivatives.s(), p.expected.ds);
+  EXPECT_EQ(derivatives.r(), p.expected.dr);
+  EXPECT_EQ(derivatives.heading(), p.expected.dheading);
+  EXPECT_EQ(derivatives.speed(), p.expected.dspeed);
 }
+
+INSTANTIATE_TEST_CASE_P(
+    Derivatives, LaneFrameKinematicPlantDerivativesTest,
+    testing::ValuesIn(std::vector<DerivativesTestParameters>{
+        {{"l:straight_0", 0.5, 0., 0., 2.}, {10., 0.}, {2., 0., 0., 10.}}
+      }));
 
 
 }  // namespace
