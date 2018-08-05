@@ -151,11 +151,10 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
           context, continuous_input_port_index_);
 
 
-  // Recall:  centripetal acceleration = v^2 / r.
   // TODO(maddog@tri.global)  Correct with lane's s-path curvature.
+  // Recall:  centripetal acceleration = v^2 / r.
   const T lateral_acceleration =
       cstate.speed() * cstate.speed() * input->curvature();
-  input->curvature();
 
   // Position + velocity ---> position derivatives.
   const maliput::api::LanePosition lane_position(cstate.s(), cstate.r(), 0.);
