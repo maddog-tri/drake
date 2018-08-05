@@ -8,7 +8,7 @@ element {
 }
 element {
      name: "curvature"
-     doc: "curvature of turn"
+     doc: "signed curvature of turn (positive is leftward, rotating counterclockwise)"
      doc_units: "1/m"
      default_value: "0.0"
 }

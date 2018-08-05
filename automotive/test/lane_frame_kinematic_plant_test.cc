@@ -207,9 +207,11 @@ struct DerivativesTestParameters {
 
 std::ostream& operator<<(std::ostream& os, const DerivativesTestParameters& p) {
   return os << fmt::format(
-      "DerivativesTestParameters( State( lane_id '{}', s_fraction {}, r {}, "
-      "heading {}, speed {}), Input( forward_acceleration {}, curvature {}), "
-      "Expected( ds {}, dr {}, dheading {}, dspeed {}))",
+      "DerivativesTestParameters( "
+      "  State( lane_id '{}', s_fraction {}, r {}, "
+      "heading {}, speed {}), "
+      "  Input( forward_acceleration {}, curvature {}), "
+      "  Expected( ds {}, dr {}, dheading {}, dspeed {}))",
       p.state.lane_id,
       p.state.r, p.state.s_fraction, p.state.heading, p.state.speed,
       p.input.forward_acceleration, p.input.curvature,
@@ -261,7 +263,14 @@ TEST_P(LaneFrameKinematicPlantDerivativesTest, Derivatives) {
 INSTANTIATE_TEST_CASE_P(
     Derivatives, LaneFrameKinematicPlantDerivativesTest,
     testing::ValuesIn(std::vector<DerivativesTestParameters>{
-        {{"l:straight_0", 0.5, 0., 0., 2.}, {10., 0.}, {2., 0., 0., 10.}}
+        // Pointed in +s direction, accelerating, zero curvature.
+        {{"l:straight_0", 0.5, 0., 0., 2.}, {10., 0.}, {2., 0., 0., 10.}},
+        // Pointed in +r direction, decelerating, zero curvature.
+        {{"l:straight_0", 0.5, 0., (M_PI / 2.), 2.}, {-10., 0.},
+         {0., 2., 0., -10.}},
+        // Pointed in -s direction, decelerating, positive curvature.
+        {{"l:straight_0", 0.5, 0., M_PI, 2.}, {-10., 0.1},
+         {-2., 0., 0., -10.}},
       }));
 
 
