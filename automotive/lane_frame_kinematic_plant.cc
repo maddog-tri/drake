@@ -9,6 +9,7 @@
 namespace drake {
 namespace automotive {
 
+namespace api = maliput::api;
 
 template <typename T>
 LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
@@ -43,17 +44,11 @@ LaneFrameKinematicPlant<T>::LaneFrameKinematicPlant()
           &LaneFrameKinematicPlant::CopyOutContinuousState).get_index();
 
   // Declare witness functions.
-  longitudinal_bounds_witness_ =
+  lane_bounds_witness_ =
       this->DeclareWitnessFunction(
-          "Longitudinal bounds check",
+          "Lane bounds check",
           systems::WitnessFunctionDirection::kNegativeThenNonNegative,
-          &LaneFrameKinematicPlant::CheckLongitudinalLaneBounds,
-          systems::UnrestrictedUpdateEvent<T>());
-  lateral_bounds_witness_ =
-      this->DeclareWitnessFunction(
-          "Lateral bounds check",
-          systems::WitnessFunctionDirection::kNegativeThenNonNegative,
-          &LaneFrameKinematicPlant::CheckLateralLaneBounds,
+          &LaneFrameKinematicPlant::CheckLaneBounds,
           systems::UnrestrictedUpdateEvent<T>());
 }
 
@@ -87,23 +82,56 @@ LaneFrameKinematicPlant<T>::abstract_output_port() const {
 }
 
 
-template <typename T>
-T LaneFrameKinematicPlant<T>::CheckLongitudinalLaneBounds(
-    const systems::Context<T>& context) const {
-
-  // xxxxxxxxxxxx;
-  const systems::VectorBase<T>& xc = context.get_continuous_state_vector();
-  return xc.GetAtIndex(0);
+namespace {
+bool ExceedsLongitudinalLaneBounds(const api::Lane* lane, double s) {
+  return (s < 0.) || (s > lane->length());
 }
 
+bool ExceedsLateralLaneBounds(const api::Lane* lane, double s, double r,
+                              double hysteresis) {
+  // TODO(maddog@tri.global)  This test needs to be more complex.  Adjacent
+  //                          lanes don't necessarily share a boundary; there
+  //                          could be "unclaimed space" between lanes in the
+  //                          model.  The hysteresis should be expressed as
+  //                          "switch lane* when r is r_hyst amount within
+  //                          the bounds of adjacent lane (if there is one)",
+  //                          instead of "amount outside of current lane".
+  //
+  //                          AND, hysteresis needs to be commutative(?)...
+  //                          don't switch lanes if swapping would yield a
+  //                          condition that just wanted to swap back.  E.g.,
+  //                          consider two lanes merging together.
+  const api::RBounds r_bounds = lane->lane_bounds(s);
+  return ((r < (r_bounds.min() - hysteresis)) ||
+          (r > (r_bounds.max() + hysteresis)));
+}
+
+bool ExceedsLateralSegmentBounds(const api::Lane* lane, double s, double r) {
+  const api::RBounds r_bounds = lane->driveable_bounds(s);
+  return (r < r_bounds.min()) || (r > r_bounds.max());
+}
+}  // anonymous namespace
+
 
 template <typename T>
-T LaneFrameKinematicPlant<T>::CheckLateralLaneBounds(
+T LaneFrameKinematicPlant<T>::CheckLaneBounds(
     const systems::Context<T>& context) const {
+  // Obtain the current state.
+  AbstractState astate = context.template get_abstract_state<AbstractState>(
+      abstract_state_index_);
+  const LaneFrameKinematicPlantContinuousState<T>& cstate =
+      get_continuous_state(context);
 
-  //  xxxxxxxxxxxx;
-  const systems::VectorBase<T>& xc = context.get_continuous_state_vector();
-  return xc.GetAtIndex(0);
+  // TODO(maddog@tri.global)  Make this a configurable parameter.
+  constexpr static double kHysteresis = 0.5;  // meters
+
+  if (ExceedsLongitudinalLaneBounds(astate.lane, cstate.s()) ||
+      ExceedsLateralLaneBounds(astate.lane, cstate.s(), cstate.r(),
+                               kHysteresis) ||
+      ExceedsLateralSegmentBounds(astate.lane, cstate.s(), cstate.r())) {
+    return 1.;
+  }
+  return 0.;
 }
 
 
@@ -133,11 +161,10 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
     const systems::Context<T>& context,
     systems::ContinuousState<T>* raw_derivatives) const {
   // Obtain the current state.
+  AbstractState astate = context.template get_abstract_state<AbstractState>(
+      abstract_state_index_);
   const LaneFrameKinematicPlantContinuousState<T>& cstate =
       get_continuous_state(context);
-  AbstractState astate =
-  context.template get_abstract_state<AbstractState>(
-      abstract_state_index_);
 
   // Obtain the parameters.
 // XXX   const EndlessRoadCarConfig<T>& config =
@@ -237,8 +264,7 @@ void LaneFrameKinematicPlant<T>::DoGetWitnessFunctions(
     const systems::Context<T>&,
     std::vector<const systems::WitnessFunction<T>*>* witnesses) const {
   // Both witness functions are always active.
-  witnesses->push_back(longitudinal_bounds_witness_.get());
-  witnesses->push_back(lateral_bounds_witness_.get());
+  witnesses->push_back(lane_bounds_witness_.get());
 }
 
 

@@ -123,9 +123,7 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
   // update" event is necessary to change the velocity of the system
   // discontinuously.
 
-  T CheckLongitudinalLaneBounds(const systems::Context<T>& context) const;
-
-  T CheckLateralLaneBounds(const systems::Context<T>& context) const;
+  T CheckLaneBounds(const systems::Context<T>& context) const;
 
   void CopyOutAbstractState(const systems::Context<T>& context,
                             AbstractState* output) const;
@@ -194,8 +192,7 @@ class LaneFrameKinematicPlant final : public systems::LeafSystem<T> {
   int continuous_output_port_index_{-1};
   int abstract_output_port_index_{-1};
 
-  std::unique_ptr<systems::WitnessFunction<T>> longitudinal_bounds_witness_;
-  std::unique_ptr<systems::WitnessFunction<T>> lateral_bounds_witness_;
+  std::unique_ptr<systems::WitnessFunction<T>> lane_bounds_witness_;
 };
 
 }  // namespace automotive
