@@ -160,6 +160,7 @@ TEST_F(LaneFrameKinematicPlantTest, SystemTopology) {
 }
 
 
+// Tests System::CalcOutput().
 TEST_F(LaneFrameKinematicPlantTest, OutputCopiesState) {
   // Set up state in context_.
   api::Lane* const kExpectedLane = reinterpret_cast<api::Lane*>(0xDeadBeef);
@@ -199,7 +200,7 @@ struct DerivativesTestParameters {
     double forward_acceleration{};
     double curvature{};
   } input;
-  struct expected {
+  struct Expected {
     double ds{};
     double dr{};
     double dheading{};
@@ -225,7 +226,7 @@ class LaneFrameKinematicPlantDerivativesTest
       public testing::WithParamInterface<DerivativesTestParameters> {};
 
 
-
+// Tests System::CalcTimeDerivatives().
 TEST_P(LaneFrameKinematicPlantDerivativesTest, Derivatives) {
   const DerivativesTestParameters& p = GetParam();
 
@@ -274,6 +275,80 @@ INSTANTIATE_TEST_CASE_P(
         {{"l:straight_0", 0.5, 0., M_PI, 2.}, {-10., 0.1},
          {-2., 0., 0.2, -10.}},
       }));
+
+
+struct WitnessTestParameters {
+  struct State {
+    std::string lane_id;
+    double s_fraction{};  // fraction of lane's length
+    double r{};
+    double heading{};
+    double speed{};
+  } state;
+  struct Expected {
+    double value{};
+  } expected;
+};
+
+std::ostream& operator<<(std::ostream& os, const WitnessTestParameters& p) {
+  return os << fmt::format(
+      "WitnessTestParameters(\n"
+      "  State( lane_id '{}', s_fraction {}, r {}, "
+      "heading {}, speed {}),\n"
+      "  Expected( value {}))",
+      p.state.lane_id,
+      p.state.s_fraction, p.state.r, p.state.heading, p.state.speed,
+      p.expected.value);
+}
+
+class LaneFrameKinematicPlantWitnessTest
+    : public LaneFrameKinematicPlantTest,
+      public testing::WithParamInterface<WitnessTestParameters> {};
+
+
+// Tests System::GetWitnessFunctions() and System::CalcWitnessFunction().
+TEST_P(LaneFrameKinematicPlantWitnessTest, WitnessFunction) {
+  const WitnessTestParameters& p = GetParam();
+
+  // Set up state in context_...
+  const std::unique_ptr<const api::RoadGeometry> road = MakeBasicRoad();
+  const api::Lane* const lane =
+      road->ById().GetLane(api::LaneId(p.state.lane_id));
+  ASSERT_TRUE(lane != nullptr);
+  abstract_state().lane = lane;
+  continuous_state().set_s(p.state.s_fraction * lane->length());
+  continuous_state().set_r(p.state.r);
+  continuous_state().set_heading(p.state.heading);
+  continuous_state().set_speed(p.state.speed);
+
+  // Run dut_.
+  std::vector<const systems::WitnessFunction<double>*> functions;
+  dut_->GetWitnessFunctions(*context_, &functions);
+  // There should be exactly one witness function.
+  ASSERT_EQ(functions.size(), 1);
+
+  // Check witness function output.
+  EXPECT_EQ(dut_->CalcWitnessValue(*context_, *functions[0]),
+            p.expected.value);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    WitnessFunction, LaneFrameKinematicPlantWitnessTest,
+    testing::ValuesIn(std::vector<WitnessTestParameters>{
+        // In-bounds.
+        {{"l:straight_0", 0.5, 0., 0., 2.}, {-1.}},
+        {{"l:straight_0", 0.5, 0., (M_PI / 2.), 2.}, {-1.}},
+        {{"l:straight_0", 0.5, 0., M_PI, 2.}, {-1}},
+            // TODO(maddog@tri.global)  Make out-of-bounds test cases.
+        // Beyond lane start.
+            // Beyond lane finish.
+            // Beyond left of driveable bounds.
+            // Beyond right of driveable bounds.
+            // ...lane bounds...
+            // TODO(maddog@tri.global) Test disjunct lane boundaries.
+      }));
+
+
 
 
 }  // namespace

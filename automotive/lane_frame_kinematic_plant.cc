@@ -131,7 +131,7 @@ T LaneFrameKinematicPlant<T>::CheckLaneBounds(
       ExceedsLateralSegmentBounds(astate.lane, cstate.s(), cstate.r())) {
     return 1.;
   }
-  return 0.;
+  return -1.;
 }
 
 
