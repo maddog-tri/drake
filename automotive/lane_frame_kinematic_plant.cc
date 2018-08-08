@@ -82,59 +82,6 @@ LaneFrameKinematicPlant<T>::abstract_output_port() const {
 }
 
 
-namespace {
-bool ExceedsLongitudinalLaneBounds(const api::Lane* lane, double s) {
-  return (s < 0.) || (s > lane->length());
-}
-
-bool ExceedsLateralLaneBounds(const api::Lane* lane, double s, double r,
-                              double hysteresis) {
-  // TODO(maddog@tri.global)  This test needs to be more complex.  Adjacent
-  //                          lanes don't necessarily share a boundary; there
-  //                          could be "unclaimed space" between lanes in the
-  //                          model.  The hysteresis should be expressed as
-  //                          "switch lane* when r is r_hyst amount within
-  //                          the bounds of adjacent lane (if there is one)",
-  //                          instead of "amount outside of current lane".
-  //
-  //                          AND, hysteresis needs to be commutative(?)...
-  //                          don't switch lanes if swapping would yield a
-  //                          condition that just wanted to swap back.  E.g.,
-  //                          consider two lanes merging together.
-  const api::RBounds r_bounds = lane->lane_bounds(s);
-  return ((r < (r_bounds.min() - hysteresis)) ||
-          (r > (r_bounds.max() + hysteresis)));
-}
-
-bool ExceedsLateralSegmentBounds(const api::Lane* lane, double s, double r) {
-  const api::RBounds r_bounds = lane->driveable_bounds(s);
-  return (r < r_bounds.min()) || (r > r_bounds.max());
-}
-}  // anonymous namespace
-
-
-template <typename T>
-T LaneFrameKinematicPlant<T>::CheckLaneBounds(
-    const systems::Context<T>& context) const {
-  // Obtain the current state.
-  AbstractState astate = context.template get_abstract_state<AbstractState>(
-      abstract_state_index_);
-  const LaneFrameKinematicPlantContinuousState<T>& cstate =
-      get_continuous_state(context);
-
-  // TODO(maddog@tri.global)  Make this a configurable parameter.
-  constexpr static double kHysteresis = 0.5;  // meters
-
-  if (ExceedsLongitudinalLaneBounds(astate.lane, cstate.s()) ||
-      ExceedsLateralLaneBounds(astate.lane, cstate.s(), cstate.r(),
-                               kHysteresis) ||
-      ExceedsLateralSegmentBounds(astate.lane, cstate.s(), cstate.r())) {
-    return 1.;
-  }
-  return -1.;
-}
-
-
 template <typename T>
 void LaneFrameKinematicPlant<T>::CopyOutAbstractState(
     const systems::Context<T>& context,
@@ -227,11 +174,81 @@ void LaneFrameKinematicPlant<T>::DoCalcTimeDerivatives(
 // XXX }
 
 
+namespace {
+bool ExceedsLongitudinalLaneBounds(const api::Lane* lane, double s) {
+  return (s < 0.) || (s > lane->length());
+}
+
+bool ExceedsLateralLaneBounds(const api::Lane* lane, double s, double r,
+                              double hysteresis) {
+  // TODO(maddog@tri.global)  This test needs to be more complex.  Adjacent
+  //                          lanes don't necessarily share a boundary; there
+  //                          could be "unclaimed space" between lanes in the
+  //                          model.  The hysteresis should be expressed as
+  //                          "switch lane* when r is r_hyst amount within
+  //                          the bounds of adjacent lane (if there is one)",
+  //                          instead of "amount outside of current lane".
+  //
+  //                          AND, hysteresis needs to be commutative(?)...
+  //                          don't switch lanes if swapping would yield a
+  //                          condition that just wanted to swap back.  E.g.,
+  //                          consider two lanes merging together.
+  const api::RBounds r_bounds = lane->lane_bounds(s);
+  return ((r < (r_bounds.min() - hysteresis)) ||
+          (r > (r_bounds.max() + hysteresis)));
+}
+
+bool ExceedsLateralSegmentBounds(const api::Lane* lane, double s, double r) {
+  const api::RBounds r_bounds = lane->driveable_bounds(s);
+  return (r < r_bounds.min()) || (r > r_bounds.max());
+}
+}  // anonymous namespace
+
+
+template <typename T>
+T LaneFrameKinematicPlant<T>::CheckLaneBounds(
+    const systems::Context<T>& context) const {
+  // Obtain the current state.
+  AbstractState astate = context.template get_abstract_state<AbstractState>(
+      abstract_state_index_);
+  const LaneFrameKinematicPlantContinuousState<T>& cstate =
+      get_continuous_state(context);
+
+  // TODO(maddog@tri.global)  Make this a configurable parameter.
+  constexpr static double kHysteresis = 0.5;  // meters
+
+  if (ExceedsLongitudinalLaneBounds(astate.lane, cstate.s()) ||
+      ExceedsLateralLaneBounds(astate.lane, cstate.s(), cstate.r(),
+                               kHysteresis) ||
+      ExceedsLateralSegmentBounds(astate.lane, cstate.s(), cstate.r())) {
+    return 1.;
+  }
+  return -1.;
+}
+
+
 template <typename T>
 void LaneFrameKinematicPlant<T>::DoCalcUnrestrictedUpdate(
-    const systems::Context<T>& context,
+    const systems::Context<T>& /* context */,
     const std::vector<const systems::UnrestrictedUpdateEvent<T>*>&,
-    systems::State<T>* next_state) const {
+    systems::State<T>* /* next_state */) const {
+
+  // Determine which conditions have contributed to the unrestricted update:
+  //  a) s exceeds model s-bounds
+  //  b) r exceeds model r-bounds
+  //  c) r exceeds lane r-bounds hysteresis
+  //
+  // If s exceeds model s-bounds:
+  //   If input.next_lane is non-null:
+  //     - assert that input.next_lane is a valid ongoing lane
+  //   Else if input.next_lane is null:
+  //     - choose an ongoing lane that best matches input.curvature
+  //   change state.lane to ongoing_lane
+  //   project s into ongoing_lane
+
+
+
+
 #if 0
   systems::VectorBase<T>& next_cstate =
       next_state->get_mutable_continuous_state().get_mutable_vector();
