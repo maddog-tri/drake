@@ -90,6 +90,11 @@ api::LanePosition Lane::DoEvalMotionDerivatives(
   return api::LanePosition(velocity.sigma_v, velocity.rho_v, velocity.eta_v);
 }
 
+api::Curvatures Lane::DoEvalCurvatures(const api::LanePosition&, double) const {
+  // Dragway is flat; everything is simply zero.
+  return api::Curvatures();
+}
+
 api::GeoPosition Lane::DoToGeoPosition(
     const api::LanePosition& lane_pos) const {
   return {lane_pos.s(), lane_pos.r() + Lane::y_offset(), lane_pos.h()};

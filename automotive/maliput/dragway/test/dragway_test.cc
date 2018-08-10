@@ -199,6 +199,16 @@ class MaliputDragwayLaneTest : public ::testing::Test {
           EXPECT_TRUE(api::test::IsLanePositionClose(
               motion_derivatives, api::LanePosition(kSigma_v, kRho_v, kEta_v),
               kLinearTolerance));
+
+          // Tests Lane::EvalCurvatures().
+          //
+          // Exercise the method; results should always be all zeros.
+          const double kArbitraryHeading = 0.123;
+          const api::Curvatures curvatures =
+              lane->EvalCurvatures(lane_position, kArbitraryHeading);
+          EXPECT_EQ(curvatures.geodesic_curvature(), 0.);
+          EXPECT_EQ(curvatures.normal_curvature(), 0.);
+          EXPECT_EQ(curvatures.geodesic_torsion(), 0.);
         }
       }
     }
