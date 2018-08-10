@@ -187,6 +187,35 @@ class Lane {
   //           LanePosition ToOtherLane(const LanePosition& in_this_lane,
   //                                    const Lane* other_lane) const;
 
+  /// Projects @p road_position into the lane-frame of this Lane.
+  ///
+  /// The return value is the LanePosition within the driveable bounds
+  /// of this Lane which is closest to @p road_position (as measured
+  /// by the Cartesian metric in the world frame).  If @p distance is
+  /// non-null, then it will be populated with the world-frame
+  /// Cartesian distance from @p road_position to the point described
+  /// by the returned LanePosition.
+  ///
+  /// Conceptually, this is the same as calling
+  /// `this->ToLanePosition(
+  ///      road_position.lane->ToGeoPosition(road_position.pos),
+  ///      nullptr, distance)`,
+  /// however this method may be implemented more efficiently, particularly
+  /// if the two Lanes involved belong to the same Segment.
+  ///
+  /// If the returned `distance` is less than `linear_tolerance()`,
+  /// then the return value and `road_position` map to the same point
+  /// in the world-frame.  This method guarantees that its result
+  /// satisfies the condition that if the returned `distance` is less
+  /// than `linear_tolerance()`, then
+  /// `road_position.lane->ToLanePosition(RoadPosition(this, result),
+  /// nullptr)` is within `linear_tolerance()` of `road_position.pos`.
+  LanePosition ToLanePosition(const RoadPosition& road_position,
+                              double* distance) const {
+    return DoToLanePosition(road_position, distance);
+  }
+
+
   /// Returns the rotation which expresses the orientation of the
   /// `Lane`-frame basis at @p lane_pos with respect to the
   /// world frame basis.
@@ -267,6 +296,9 @@ class Lane {
       const GeoPosition& geo_pos,
       GeoPosition* nearest_point,
       double* distance) const = 0;
+
+  virtual LanePosition DoToLanePosition(const RoadPosition& road_position,
+                                        double* distance) const = 0;
 
   virtual Rotation DoGetOrientation(const LanePosition& lane_pos) const = 0;
 
