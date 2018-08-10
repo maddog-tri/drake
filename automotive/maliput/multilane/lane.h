@@ -148,6 +148,11 @@ class Lane : public api::Lane {
       const api::LanePosition& position,
       const api::IsoLaneVelocity& velocity) const override;
 
+  api::Curvatures DoEvalCurvatures(
+      const api::LanePosition&, double) const override {
+    DRAKE_ABORT();  // TODO(maddog@tri.global)  Implement me.
+  }
+
   api::LanePosition DoToLanePosition(
       const api::GeoPosition& geo_position,
       api::GeoPosition* nearest_position,

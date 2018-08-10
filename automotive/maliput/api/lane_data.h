@@ -122,6 +122,53 @@ class Rotation {
 std::ostream& operator<<(std::ostream& out, const Rotation& rotation);
 
 
+/// Collection of properties related to the Darboux frame of a path along
+/// the road surface (h == 0):
+///  * geodesic_curvature:  path's curvature in the tangent plane of
+///                         the surface
+///  * normal_curvature: path's curvature normal to the surface
+///  * geodesic_torsion:  ????
+class Curvatures {
+ public:
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Curvatures);
+
+  /// Default constructor, initializing all elements to zero.
+  Curvatures()
+      : geodesic_curvature_(0.),
+        normal_curvature_(0.),
+        geodesic_torsion_(0.) {}
+
+  /// Fully parameterized constructor.
+  Curvatures(double geodesic_curvature,
+             double normal_curvature,
+             double geodesic_torsion)
+      : geodesic_curvature_(geodesic_curvature),
+        normal_curvature_(normal_curvature),
+        geodesic_torsion_(geodesic_torsion) {}
+
+  /// @name Getters and Setters
+  //@{
+  /// Gets geodesic_curvature value.
+  double geodesic_curvature() const { return geodesic_curvature_; }
+  /// Sets geodesic_curvature value.
+  void set_geodesic_curvature(double v) { geodesic_curvature_ = v; }
+  /// Gets normal_curvature value.
+  double normal_curvature() const { return normal_curvature_; }
+  /// Sets normal_curvature value.
+  void set_normal_curvature(double v) { normal_curvature_ = v; }
+  /// Gets `geodesic_torsion` value.
+  double geodesic_torsion() const { return geodesic_torsion_; }
+  /// Sets `geodesic_torsion` value.
+  void set_geodesic_torsion(double v) { geodesic_torsion_ = v; }
+  //@}
+
+ private:
+  double geodesic_curvature_;
+  double normal_curvature_;
+  double geodesic_torsion_;
+};
+
+
 /// A position in 3-dimensional geographical Cartesian space, i.e., in the world
 /// frame, consisting of three components x, y, and z.
 ///

@@ -91,6 +91,11 @@ class Lane : public api::Lane {
   optional<api::LaneEnd> DoGetDefaultBranch(
       const api::LaneEnd::Which which_end) const override;
 
+  api::Curvatures DoEvalCurvatures(
+      const api::LanePosition&, double) const override {
+    DRAKE_ABORT();  // TODO(maddog@tri.global)  Implement me.
+  }
+
   const api::LaneId id_;
   const api::Segment* segment_{};
   BranchPoint* start_bp_{};

@@ -194,6 +194,7 @@ class Lane {
     return DoGetOrientation(lane_pos);
   }
 
+
   /// Computes derivatives of LanePosition given a velocity vector @p velocity.
   /// @p velocity is a isometric velocity vector oriented in the `Lane`-frame
   /// at @p position.
@@ -204,8 +205,22 @@ class Lane {
     return DoEvalMotionDerivatives(position, velocity);
   }
 
-  // TODO(maddog@tri.global)  Design/implement this.
-  // void EvalSurfaceDerivatives(...) const { return do_(); }
+
+  /// Returns curvature-related properties of a path on the road surface,
+  /// which are useful for computing the accelerations involved in followin
+  /// the path.
+  ///
+  /// More specifically, for a path with constant lane-frame velocity
+  /// (s_dot, r_dot, 0) in the `heading` direction, this calculates
+  /// parameters of the Darboux frame at `lane_pos`
+  ///  * geodesic_curvature:  path's curvature in the tangent plane of
+  ///                         the surface
+  ///  * normal_curvature: path's curvature normal to the surface
+  ///  * geodesic_torsion:  ????
+  Curvatures EvalCurvatures(const LanePosition& lane_position,
+                            double heading) const {
+    return DoEvalCurvatures(lane_position, heading);
+  }
 
 
   /// Returns the lane's BranchPoint for the end specified by @p which_end.
@@ -272,6 +287,9 @@ class Lane {
 
   virtual LanePosition DoEvalMotionDerivatives(
       const LanePosition& position, const IsoLaneVelocity& velocity) const = 0;
+
+  virtual Curvatures DoEvalCurvatures(
+      const LanePosition& lane_position, double heading) const = 0;
 
   virtual const BranchPoint* DoGetBranchPoint(
       const LaneEnd::Which which_end) const = 0;
