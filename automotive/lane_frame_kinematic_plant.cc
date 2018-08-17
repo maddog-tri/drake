@@ -217,6 +217,8 @@ T LaneFrameKinematicPlant<T>::CheckLaneBounds(
   // TODO(maddog@tri.global)  Make this a configurable parameter.
   constexpr static double kHysteresis = 0.5;  // meters
 
+  // NB: Longitudinal bounds must be tested first, because lateral bounds are
+  //     not even defined outside of the longitudinal domain.
   if (ExceedsLongitudinalLaneBounds(astate.lane, cstate.s()) ||
       ExceedsLateralLaneBounds(astate.lane, cstate.s(), cstate.r(),
                                kHysteresis) ||
@@ -247,6 +249,9 @@ void LaneFrameKinematicPlant<T>::DoCalcUnrestrictedUpdate(
   //   project s into ongoing_lane
 
 
+  // Collect a prioritized list of potential new lanes.
+  // ---heuristics
+  // Choose the best new lane.
 
 
 #if 0
