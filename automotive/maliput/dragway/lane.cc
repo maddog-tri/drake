@@ -91,7 +91,7 @@ api::LanePosition Lane::DoEvalMotionDerivatives(
 }
 
 api::Curvatures Lane::DoEvalCurvatures(const api::LanePosition&, double) const {
-  // Dragway is flat; everything is simply zero.
+  // Dragway is flat; everything is trivially zero.
   return api::Curvatures();
 }
 

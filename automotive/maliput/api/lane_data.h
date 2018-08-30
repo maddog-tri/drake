@@ -122,12 +122,12 @@ class Rotation {
 std::ostream& operator<<(std::ostream& out, const Rotation& rotation);
 
 
-/// Collection of properties related to the Darboux frame of a path along
-/// the road surface (h == 0):
+/// Properties of the Darboux frame of a path along the road surface (h == 0):
 ///  * geodesic_curvature:  path's curvature in the tangent plane of
 ///                         the surface
-///  * normal_curvature: path's curvature normal to the surface
-///  * geodesic_torsion:  ????
+///  * normal_curvature:  path's curvature normal to the surface
+///  * geodesic_torsion:  rate of rotation of the tangent plane around
+///                       the path's tangent
 class Curvatures {
  public:
   DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(Curvatures);
@@ -148,13 +148,13 @@ class Curvatures {
 
   /// @name Getters and Setters
   //@{
-  /// Gets geodesic_curvature value.
+  /// Gets `geodesic_curvature` value.
   double geodesic_curvature() const { return geodesic_curvature_; }
-  /// Sets geodesic_curvature value.
+  /// Sets `geodesic_curvature` value.
   void set_geodesic_curvature(double v) { geodesic_curvature_ = v; }
-  /// Gets normal_curvature value.
+  /// Gets `normal_curvature` value.
   double normal_curvature() const { return normal_curvature_; }
-  /// Sets normal_curvature value.
+  /// Sets `normal_curvature` value.
   void set_normal_curvature(double v) { normal_curvature_ = v; }
   /// Gets `geodesic_torsion` value.
   double geodesic_torsion() const { return geodesic_torsion_; }

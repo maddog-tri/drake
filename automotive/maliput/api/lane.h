@@ -207,16 +207,17 @@ class Lane {
 
 
   /// Returns curvature-related properties of a path on the road surface,
-  /// which are useful for computing the accelerations involved in followin
+  /// which are useful for computing the accelerations required to follow
   /// the path.
   ///
   /// More specifically, for a path with constant lane-frame velocity
-  /// (s_dot, r_dot, 0) in the `heading` direction, this calculates
-  /// parameters of the Darboux frame at `lane_pos`
+  /// (s_dot, r_dot, 0) in the `heading` direction, this method calculates
+  /// the following parameters of the Darboux frame at `lane_pos`:
   ///  * geodesic_curvature:  path's curvature in the tangent plane of
   ///                         the surface
-  ///  * normal_curvature: path's curvature normal to the surface
-  ///  * geodesic_torsion:  ????
+  ///  * normal_curvature:  path's curvature normal to the surface
+  ///  * geodesic_torsion:  rate of rotation of the tangent plane around
+  ///                       the path's tangent
   Curvatures EvalCurvatures(const LanePosition& lane_position,
                             double heading) const {
     return DoEvalCurvatures(lane_position, heading);
